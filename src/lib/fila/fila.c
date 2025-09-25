@@ -4,7 +4,7 @@
 
 // Estrutura para um nó da fila
 typedef struct Node {
-    int data;
+    void* data;
     struct Node* next;
 } Node;
 
@@ -22,7 +22,7 @@ Queue* createQueue() {
 }
 
 // Função para adicionar um elemento à fila
-void enqueue(Queue* q, int value) {
+void enqueue(Queue* q, void* value) {
     Node* temp = (Node*)malloc(sizeof(Node));
     temp->data = value;
     temp->next = NULL;
@@ -37,14 +37,14 @@ void enqueue(Queue* q, int value) {
 }
 
 // Função para remover um elemento da fila
-int dequeue(Queue* q) {
+void* dequeue(Queue* q) {
     if (q->front == NULL) { // Caso a fila esteja vazia
         printf("Fila vazia! Não é possível remover elementos.\n");
-        return -1;
+        return NULL;
     }
 
     Node* temp = q->front;
-    int value = temp->data;
+    void* value = temp->data;
     q->front = q->front->next;
 
     if (q->front == NULL) { // Caso a fila fique vazia após a remoção
@@ -52,7 +52,7 @@ int dequeue(Queue* q) {
     }
 
     free(temp);
-    return value;
+    return value; // ou apenas 'return value;' se for void*
 }
 
 // Função para exibir os elementos da fila
@@ -65,7 +65,7 @@ void displayQueue(Queue* q) {
     Node* temp = q->front;
     printf("Fila: ");
     while (temp != NULL) {
-        printf("%d ", temp->data);
+        printf("%p ", temp->data); // Exibe o ponteiro
         temp = temp->next;
     }
     printf("\n");
