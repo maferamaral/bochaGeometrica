@@ -7,7 +7,7 @@ typedef void *FileData;
 FileData *readFile(const char *filepath);
 
 // Retorna a fila de linhas de um FileData
-Queue *getLinesQueue(FileData *fileData);
+Queue getLinesQueue(FileData *fileData);
 
 // Libera a memória alocada para FileData
 void destroyFileData(FileData *fileData);

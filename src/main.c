@@ -14,12 +14,17 @@ int main(int argc, char *argv[])
     // Verificar argumentos necessários
     if (geoPath == NULL || outputPath == NULL)
     {
-        printf("Erro ao alocar memoria");
+        printf("Erro ao abrir arquivo geo");
         exit(1);
     }
 
     // Colocar as linhas do arquivo na fila
     FileData geo_file = readFile(geoPath);
+    if (geo_file == NULL)
+    {
+        printf("Erro ao abrir arquivo geo.");
+        exit(1);
+    }
 
     // Executar essas linhas
 
