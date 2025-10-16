@@ -1,35 +1,31 @@
 #include "lib/arg/arg.h"
 #include "lib/fila/fila.h"
+#include "lib/geo_handler/geo_handler.h"
 #include "lib/manipuladorDeArquivo/manipuladorDeArquivo.h"
-#include "lib/geo_handler/geo_handler.h";
-#include "lib/arg/arg.h"
 #include <stdio.h>
 
-int main(int argc, char *argv[])
-{
-    // Pegar argumentos
-    const char *geoPath = getArgValue(argc, argv, "-f");
-    const char *outputPath = getArgValue(argc, argv, "-o");
-    const char *qryPath = getArgValue(argc, argv, "-q");
+int main(int argc, char *argv[]) {
+  // Pegar argumentos
+  const char *geoPath = getArgValue(argc, argv, "-f");
+  const char *outputPath = getArgValue(argc, argv, "-o");
+  const char *qryPath = getArgValue(argc, argv, "-q");
 
-    // Verificar argumentos necessários
-    if (geoPath == NULL || outputPath == NULL)
-    {
-        printf("Erro ao abrir arquivo geo");
-        exit(1);
-    }
+  // Verificar argumentos necessários
+  if (geoPath == NULL || outputPath == NULL) {
+    printf("Erro ao abrir arquivo geo");
+    exit(1);
+  }
 
-    // Colocar as linhas do arquivo na fila
-    FileData geo_file = readFile(geoPath);
-    if (geo_file == NULL)
-    {
-        printf("Erro ao abrir arquivo geo.");
-        exit(1);
-    }
+  // Colocar as linhas do arquivo na fila
+  FileData geo_file = readFile(geoPath);
+  if (geo_file == NULL) {
+    printf("Erro ao abrir arquivo geo.");
+    exit(1);
+  }
 
-    // Executar essas linhas
-    executar_geo(geo_file);
-    destroyFileData(geo_file);
+  // Executar essas linhas
+  Ground ground = execute_geo_commands(geo_file, outputPath, NULL);
+  destroyFileData(geo_file);
 
-    return 0;
+  return 0;
 }

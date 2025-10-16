@@ -31,8 +31,8 @@ static void execute_text_style_command(Ground_t *ground);
 static void create_svg_queue(Ground_t *ground, const char *output_path,
                              FileData fileData, const char *command_suffix);
 
-Ground_t *execute_geo_commands(FileData fileData, const char *output_path,
-                               const char *command_suffix) {
+Ground execute_geo_commands(FileData fileData, const char *output_path,
+                            const char *command_suffix) {
   Ground_t *ground = malloc(sizeof(Ground_t));
   if (ground == NULL) {
     printf("Error: Failed to allocate memory for Ground\n");
@@ -132,8 +132,8 @@ static void execute_rectangle_command(Ground_t *ground) {
   char *fillColor = strtok(NULL, " ");
 
   Rectangle rectangle =
-      rectangle_create(atoi(identifier), atof(posX), atof(posY), atof(width),
-                       atof(height), borderColor, fillColor);
+      retangulo_criar(atoi(identifier), atof(posX), atof(posY), atof(width),
+                      atof(height), borderColor, fillColor);
 
   Shape_t *shape = malloc(sizeof(Shape_t));
   if (shape == NULL) {
