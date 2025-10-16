@@ -1,11 +1,14 @@
 
-enum TipoForma
+#ifndef FORMAS_H
+#define FORMAS_H
+
+typedef enum
 {
     CIRCLE,
     RECTANGLE,
     LINE,
     TEXT,
     TEXT_STYLE
-};
+} TipoForma;
 
-typedef enum TipoForma TipoForma;
+#endif // FORMAS_H

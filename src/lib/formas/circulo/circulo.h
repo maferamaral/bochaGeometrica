@@ -1,37 +1,74 @@
+/**
+ * Circle ADT - Represents a circle geometric element
+ *
+ * This module provides an abstract data type for circles with position,
+ * radius, and color attributes.
+ */
+// Tradução para português
 #ifndef CIRCULO_H
 #define CIRCULO_H
 
-#include <stdio.h>
+typedef void *Circulo;
 
-// Estrutura opaca para Circle
-typedef void *Circle;
+/**
+ * Creates a new circle instance
+ * @param id Circle identifier
+ * @param x X coordinate of center
+ * @param y Y coordinate of center
+ * @param radius Circle radius
+ * @param border_color Border color string
+ * @param fill_color Fill color string
+ * @return Pointer to new circle or NULL on error
+ */
+Circulo circulo_criar(int id, double x, double y, double raio,
+                      const char *cor_borda, const char *cor_preenchimento);
 
-// Cria um novo círculo e retorna um ponteiro para ele
-// Retorna NULL em caso de erro na alocação de memória ou parâmetros inválidos
-void *createCircle(float x, float y, float r, char *corb, char *corp, int id);
+/**
+ * Destroys a circle instance and frees all memory
+ * @param circle Circle instance to destroy
+ */
+void circulo_destruir(Circulo circulo);
 
-// Calcula a área de um círculo
-float areaCircle(Circle c);
+/**
+ * Gets the circle identifier
+ * @param circle Circle instance
+ * @return Circle identifier
+ */
+int circulo_get_id(Circulo circulo);
 
-// Retorna a coordenada X do círculo
-float getX_circle(Circle c);
+/**
+ * Gets the X coordinate of circle center
+ * @param circle Circle instance
+ * @return X coordinate
+ */
+double circulo_get_x(Circulo circulo);
 
-// Retorna a coordenada Y do círculo
-float getY_circle(Circle c);
+/**
+ * Gets the Y coordinate of circle center
+ * @param circle Circle instance
+ * @return Y coordinate
+ */
+double circulo_get_y(Circulo circulo);
 
-// Retorna o raio do círculo
-float getR_circle(Circle c);
+/**
+ * Gets the circle radius
+ * @param circle Circle instance
+ * @return Circle radius
+ */
+double circulo_get_raio(Circulo circulo);
 
-// Libera a memória de um círculo
-void deleteCircle(Circle c);
+/**
+ * Gets the border color string
+ * @param circle Circle instance
+ * @return Border color string (do not free)
+ */
+const char *circulo_get_cor_borda(Circulo circulo);
 
-// Retorna o id do círculo
-int getID_circle(Circle c);
-
-// Retorna a cor de borda do círculo
-char *getCorb_circle(Circle c);
-
-// Retorna a cor de preenchimento do círculo
-char *getCorp_circle(Circle c);
+/**
+ * Gets the fill color string
+ * @param circle Circle instance
+ * @return Fill color string (do not free)
+ */
+const char *circulo_get_cor_preenchimento(Circulo circulo);
 
 #endif // CIRCULO_H

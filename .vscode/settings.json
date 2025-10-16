@@ -1,5 +1,8 @@
 {
     "files.associations": {
-        "circulo.h": "c"
+        "circulo.h": "c",
+        "stdlib.h": "c",
+        "manipuladordearquivo.h": "c",
+        "formas.h": "c"
     }
 }
