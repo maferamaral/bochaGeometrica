@@ -1,27 +1,81 @@
-#ifndef TEXTO_H
-#define TEXTO_H
+/**
+ * Text ADT - Represents a text geometric element
+ *
+ * This module provides an abstract data type for text elements with position,
+ * colors, anchor, and text content.
+ */
+#ifndef TEXT_H
+#define TEXT_H
 
-// Estruturas opacas
-typedef struct Texto Texto;
-typedef struct TextStyle TextStyle;
+typedef void *Text;
 
-// Cria um novo Texto alocado dinamicamente e retorna o ponteiro.
-// Propriedade das strings passadas é copiada internamente.
-Texto *createText(int id, int x, int y, char a, const char *corb, const char *corp, const char *txto, const char *fFamily, const char *fWeight, const char *fSize);
+/**
+ * Creates a new text instance
+ * @param id Text identifier
+ * @param x X coordinate of text position
+ * @param y Y coordinate of text position
+ * @param border_color Border color string
+ * @param fill_color Fill color string
+ * @param anchor Text anchor character
+ * @param text Text content string
+ * @return Pointer to new text or NULL on error
+ */
+Text text_create(int id, double x, double y, const char *border_color,
+                 const char *fill_color, char anchor, const char *text);
 
-int getID_txt(Texto *t);
-int getX_txt(Texto *t);
-int getY_txt(Texto *t);
-char getA_txt(Texto *t);
-char *getCorb_txt(Texto *t);
-char *getCorp_txt(Texto *t);
-char *getTxto_txt(Texto *t);
+/**
+ * Destroys a text instance and frees all memory
+ * @param text Text instance to destroy
+ */
+void text_destroy(Text text);
 
-// Funções para TextStyle
-char *getFF_txt(Texto *t);
-char *getFW_txt(Texto *t);
-char *getFS_txt(Texto *t);
+/**
+ * Gets the text identifier
+ * @param text Text instance
+ * @return Text identifier
+ */
+int text_get_id(Text text);
 
-void deleteTxt(Texto *t);
+/**
+ * Gets the X coordinate of text position
+ * @param text Text instance
+ * @return X coordinate
+ */
+double text_get_x(Text text);
 
-#endif // TEXTO_H
+/**
+ * Gets the Y coordinate of text position
+ * @param text Text instance
+ * @return Y coordinate
+ */
+double text_get_y(Text text);
+
+/**
+ * Gets the border color string
+ * @param text Text instance
+ * @return Border color string (do not free)
+ */
+const char *text_get_border_color(Text text);
+
+/**
+ * Gets the fill color string
+ * @param text Text instance
+ * @return Fill color string (do not free)
+ */
+const char *text_get_fill_color(Text text);
+
+/**
+ * Gets the text anchor character
+ * @param text Text instance
+ * @return Anchor character
+ */
+char text_get_anchor(Text text);
+
+/**
+ * Gets the text content string
+ * @param text Text instance
+ * @return Text content string (do not free)
+ */
+const char *text_get_text(Text text);
+
+#endif // TEXT_H
