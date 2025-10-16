@@ -1,132 +1,87 @@
 #include "linha.h"
+#include "../../utils/utils.h"
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 
-typedef struct
-{
-    int id;
-    float x1, x2;
-    float y1, y2;
-    char cor[32];
-} Line_t;
+/**
+ * Internal Line structure
+ */
+struct Line {
+  int id;
+  double x1;
+  double y1;
+  double x2;
+  double y2;
+  char *color;
+};
 
-void createLine(int id, float x1, float x2, float y1, float y2, char *cor)
-{
-    if (!cor)
-    {
-        return NULL;
-    }
+void *line_create(int id, double x1, double y1, double x2, double y2,
+                  const char *color) {
+  if (!color) {
+    return NULL;
+  }
 
-    Line_t *l = (Line_t *)malloc(sizeof(Line_t));
-    if (l == NULL)
-    {
-        printf("Erro ao alocar memória");
-        exit(1);
-    }
-    id = l->id;
-    x1 = l->x1;
-    x2 = l->x2;
-    y1 = l->y1;
-    y2 = l->y2;
+  struct Line *line = malloc(sizeof(struct Line));
+  if (!line) {
+    return NULL;
+  }
 
-    l->cor = duplicate_string(cor);
-    if (!l->cor)
-    {
-        free(l);
-        return NULL;
-    }
+  line->id = id;
+  line->x1 = x1;
+  line->y1 = y1;
+  line->x2 = x2;
+  line->y2 = y2;
+
+  line->color = duplicate_string(color);
+  if (!line->color) {
+    free(line);
+    return NULL;
+  }
+
+  return line;
 }
 
-float lineLength(Line l)
-{
-    Line_t *linha = (Line *)l;
-    if (!linha)
-    {
-        return -1;
-    }
-    float d = sqrt(pow((linha->x1 - linha->x2), 2) + pow((linha->y1 - linha->y2), 2));
-    return d;
+void line_destroy(void *line) {
+  if (!line)
+    return;
+
+  struct Line *l = (struct Line *)line;
+  free(l->color);
+  free(l);
 }
 
-float lineArea(Line l)
-{
-    Line_t *linha = (Line *)l;
-    if (!linha)
-    {
-        return -1;
-    }
-    float area = 2 * lineLength(linha);
-    return area;
+int line_get_id(void *line) {
+  if (!line)
+    return -1;
+  return ((struct Line *)line)->id;
 }
 
-float getX1_line(Line l)
-{
-    Line_t *linha = (Line *)l;
-    if (!linha)
-    {
-        return 0.0;
-    }
-    return linha->x1;
+double line_get_x1(void *line) {
+  if (!line)
+    return 0.0;
+  return ((struct Line *)line)->x1;
 }
 
-float getX2_line(Line l)
-{
-    Line_t *linha = (Line *)l;
-    if (!linha)
-    {
-        return 0.0;
-    }
-    return linha->x2;
+double line_get_y1(void *line) {
+  if (!line)
+    return 0.0;
+  return ((struct Line *)line)->y1;
 }
 
-int getId_line(Line l)
-{
-    Line_t *linha = (Line *)l;
-    if (!linha)
-    {
-        return -1;
-    }
-    return linha->id;
+double line_get_x2(void *line) {
+  if (!line)
+    return 0.0;
+  return ((struct Line *)line)->x2;
 }
 
-float getY1_line(Line l)
-{
-    Line_t *linha = (Line *)l;
-    if (!linha)
-    {
-        return 0.0;
-    }
-    return linha->y1;
+double line_get_y2(void *line) {
+  if (!line)
+    return 0.0;
+  return ((struct Line *)line)->y2;
 }
 
-float getY2_line(Line l)
-{
-    Line_t *linha = (Line *)l;
-    if (!linha)
-    {
-        return 0.0;
-    }
-    return linha->y2;
-}
-
-char *getCor_line(Line l)
-{
-    Line_t *linha = (Line *)l;
-    if (!linha)
-    {
-        return NULL;
-    }
-    return linha->cor;
-}
-
-void deleteLine(Line *l)
-{
-    Line_t *linha = (Line_t *)l;
-    if (!linha)
-    {
-        return;
-    }
-    free(linha->cor);
-    free(linha);
+const char *line_get_color(void *line) {
+  if (!line)
+    return NULL;
+  return ((struct Line *)line)->color;
 }

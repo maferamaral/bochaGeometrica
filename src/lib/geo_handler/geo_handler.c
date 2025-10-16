@@ -4,10 +4,10 @@
 #include "../formas/formas.h"
 #include "../formas/linha/linha.h"
 #include "../formas/retangulo/retangulo.h"
+#include "../formas/text_style/text_style.h"
 #include "../formas/texto/texto.h"
 #include "../manipuladorDeArquivo/manipuladorDeArquivo.h"
 #include "../pilha/pilha.h"
-// #include "../formas/estilo_texto/estilo_texto.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -216,7 +216,7 @@ static void execute_text_style_command(Ground_t *ground) {
 
 static void create_svg_queue(Ground_t *ground, const char *output_path,
                              FileData fileData, const char *command_suffix) {
-  const char *original_file_name = get_file_name(fileData);
+  const char *original_file_name = getFileName(fileData);
   size_t name_len = strlen(original_file_name);
   char *file_name = malloc(name_len + 1);
   if (file_name == NULL) {
@@ -224,7 +224,6 @@ static void create_svg_queue(Ground_t *ground, const char *output_path,
     return;
   }
   strcpy(file_name, original_file_name);
-  strtok(file_name, ".");
   if (command_suffix != NULL) {
     strcat(file_name, "-");
     strcat(file_name, command_suffix);
