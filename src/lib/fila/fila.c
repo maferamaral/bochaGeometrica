@@ -7,28 +7,27 @@ typedef struct Node
 {
     void *data;
     struct Node *next;
-} NodeImpl;
+} Node;
 
-// Estrutura para a fila que será tratada como void*
-typedef struct QueueImpl
+// Estrutura para a fila
+typedef struct Queue
 {
-    NodeImpl *front; // Início da fila
-    NodeImpl *rear;  // Fim da fila
-} QueueImpl;
+    Node *front; // Início da fila
+    Node *rear;  // Fim da fila
+} Queue;
 
 // Função para criar uma fila vazia
-void *createQueue()
+Queue *createQueue()
 {
-    QueueImpl *q = (QueueImpl *)malloc(sizeof(QueueImpl));
+    Queue *q = (Queue *)malloc(sizeof(Queue));
     q->front = q->rear = NULL;
-    return (void *)q;
+    return q;
 }
 
 // Função para adicionar um elemento à fila
-void enqueue(void *queue, void *value)
+void enqueue(Queue *q, void *value)
 {
-    QueueImpl *q = (QueueImpl *)queue;
-    NodeImpl *temp = (NodeImpl *)malloc(sizeof(NodeImpl));
+    Node *temp = (Node *)malloc(sizeof(Node));
     temp->data = value;
     temp->next = NULL;
 
@@ -43,16 +42,15 @@ void enqueue(void *queue, void *value)
 }
 
 // Função para remover um elemento da fila
-void *dequeue(void *queue)
+void *dequeue(Queue *q)
 {
-    QueueImpl *q = (QueueImpl *)queue;
     if (q->front == NULL)
     { // Caso a fila esteja vazia
         printf("Fila vazia! Não é possível remover elementos.\n");
         return NULL;
     }
 
-    NodeImpl *temp = q->front;
+    Node *temp = q->front;
     void *value = temp->data;
     q->front = q->front->next;
 
@@ -62,20 +60,19 @@ void *dequeue(void *queue)
     }
 
     free(temp);
-    return value;
+    return value; // ou apenas 'return value;' se for void*
 }
 
 // Função para exibir os elementos da fila
-void displayQueue(void *queue)
+void displayQueue(Queue *q)
 {
-    QueueImpl *q = (QueueImpl *)queue;
     if (q->front == NULL)
     {
         printf("Fila vazia!\n");
         return;
     }
 
-    NodeImpl *temp = q->front;
+    Node *temp = q->front;
     printf("Fila: ");
     while (temp != NULL)
     {
