@@ -1,22 +1,18 @@
 #ifndef PILHA_H
 #define PILHA_H
 
-// Estrutura do nó da pilha
-typedef struct Node Node;
+// Tipo opaco da pilha
+typedef void *Stack;
 
-// Função para criar um novo nó
-Node* createNode(int data);
-
-// Função para empilhar (push)
-void push(Node** top, int data);
-
-// Função para desempilhar (pop)
-int pop(Node** top);
-
-// Função para verificar o elemento no topo (peek)
-int peek(Node* top);
-
-// Função para verificar se a pilha está vazia
-int isEmpty(Node* top);
+// Cria uma pilha vazia
+Stack stack_create();
+// Empilha um elemento (ponteiro genérico)
+void stack_push(Stack stack, void *value);
+// Desempilha e retorna o elemento; retorna NULL se vazia
+void *stack_pop(Stack stack);
+// Retorna 1 se vazia, 0 caso contrário
+int stack_is_empty(Stack stack);
+// Destroi a pilha liberando nós internos (não libera os dados apontados)
+void stack_destroy(Stack stack);
 
 #endif // PILHA_H

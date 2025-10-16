@@ -2,6 +2,8 @@
 #define GEO_HANDLER_H
 #include "../fila/fila.h"
 
+typedef void *Ground;
+
 // Função para executar o processamento de um arquivo GEO
 // Recebe uma fila contendo as linhas do arquivo GEO a serem processadas
 // geo_lines_queue: fila contendo as linhas do arquivo GEO

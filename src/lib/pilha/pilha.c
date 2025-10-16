@@ -1,57 +1,70 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include "pilha.h"
+#include <stdlib.h>
 
-// Estrutura do nó da pilha
-typedef struct Node {
-    int data;
-    struct Node* next;
-} Node;
+typedef struct stack_node_t {
+  void *data;
+  struct stack_node_t *next;
+} StackNode;
 
-// Função para criar um novo nó
-Node* createNode(int data) {
-    Node* newNode = (Node*)malloc(sizeof(Node));
-    if (!newNode) {
-        printf("Erro de alocação de memória!\n");
-        exit(1);
-    }
-    newNode->data = data;
-    newNode->next = NULL;
-    return newNode;
+typedef struct stack_t {
+  StackNode *top;
+} *StackImpl;
+
+static StackImpl as_impl(Stack stack) { return (StackImpl)stack; }
+
+Stack stack_create() {
+  StackImpl s = (StackImpl)malloc(sizeof(*s));
+  if (s == NULL) {
+    return NULL;
+  }
+  s->top = NULL;
+  return (Stack)s;
 }
 
-// Função para empilhar (push)
-void push(Node** top, int data) {
-    Node* newNode = createNode(data);
-    newNode->next = *top;
-    *top = newNode;
-    printf("Elemento %d empilhado.\n", data);
+void stack_push(Stack stack, void *value) {
+  StackImpl s = as_impl(stack);
+  if (s == NULL) {
+    return;
+  }
+  StackNode *node = (StackNode *)malloc(sizeof(StackNode));
+  if (node == NULL) {
+    return;
+  }
+  node->data = value;
+  node->next = s->top;
+  s->top = node;
 }
 
-// Função para desempilhar (pop)
-int pop(Node** top) {
-    if (*top == NULL) {
-        printf("A pilha está vazia! Não é possível desempilhar.\n");
-        return -1;
-    }
-    Node* temp = *top;
-    int poppedData = temp->data;
-    *top = (*top)->next;
-    free(temp);
-    return poppedData;
+void *stack_pop(Stack stack) {
+  StackImpl s = as_impl(stack);
+  if (s == NULL || s->top == NULL) {
+    return NULL;
+  }
+  StackNode *node = s->top;
+  void *value = node->data;
+  s->top = node->next;
+  free(node);
+  return value;
 }
 
-// Função para verificar o elemento no topo (peek)
-int peek(Node* top) {
-    if (top == NULL) {
-        printf("A pilha está vazia!\n");
-        return -1;
-    }
-    return top->data;
+int stack_is_empty(Stack stack) {
+  StackImpl s = as_impl(stack);
+  if (s == NULL) {
+    return 1;
+  }
+  return s->top == NULL;
 }
 
-// Função para verificar se a pilha está vazia
-int isEmpty(Node* top) {
-    return top == NULL;
+void stack_destroy(Stack stack) {
+  StackImpl s = as_impl(stack);
+  if (s == NULL) {
+    return;
+  }
+  StackNode *curr = s->top;
+  while (curr != NULL) {
+    StackNode *next = curr->next;
+    free(curr);
+    curr = next;
+  }
+  free(s);
 }
-

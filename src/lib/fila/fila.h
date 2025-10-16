@@ -4,17 +4,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// Definição do tipo Node com void* data
-typedef struct Node Node;
+// Tipo opaco da fila
+typedef void *Queue;
+// Alias para compatibilidade com código existente
+typedef Queue Fila;
 
-typedef struct Queue Queue;
-// Função para criar uma fila vazia
-Queue *createQueue();
-// Função para adicionar um elemento à fila
-void enqueue(Queue *q, void *value);
-// Função para remover um elemento da fila
-void *dequeue(Queue *q);
-// Função para exibir os elementos da fila
-void displayQueue(Queue *q);
+// Cria uma fila vazia
+Queue queue_create();
+// Enfileira um elemento (ponteiro genérico)
+void queue_enqueue(Queue queue, void *value);
+// Desenfileira e retorna o elemento; retorna NULL se vazia
+void *queue_dequeue(Queue queue);
+// Retorna 1 se vazia, 0 caso contrário
+int queue_is_empty(Queue queue);
+// Destroi a fila liberando nós internos (não libera os dados apontados)
+void queue_destroy(Queue queue);
 
 #endif // FILA_H
