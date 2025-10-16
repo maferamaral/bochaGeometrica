@@ -1,6 +1,7 @@
 #include "lib/arg/arg.h"
 #include "lib/fila/fila.h"
 #include "lib/manipuladorDeArquivo/manipuladorDeArquivo.h"
+#include "lib/geo_handler/geo_handler.h";
 #include "lib/arg/arg.h"
 #include <stdio.h>
 
@@ -27,6 +28,8 @@ int main(int argc, char *argv[])
     }
 
     // Executar essas linhas
+    executar_geo(geo_file);
+    destroyFileData(geo_file);
 
     return 0;
 }

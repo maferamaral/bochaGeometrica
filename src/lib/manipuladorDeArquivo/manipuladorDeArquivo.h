@@ -12,4 +12,6 @@ Queue getLinesQueue(FileData *fileData);
 // Libera a memória alocada para FileData
 void destroyFileData(FileData *fileData);
 
+char *duplicate_string(char *s);
+
 #endif // MANIPULADOR_DE_ARQUIVO_H

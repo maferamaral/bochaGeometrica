@@ -3,26 +3,30 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+// Estrutura para armazenar o estilo do texto
 struct TextStyle
 {
-    char *fFamily;
-    char *fWeight;
-    char *fSize;
+    char *fFamily; // Família da fonte
+    char *fWeight; // Peso da fonte
+    char *fSize;   // Tamanho da fonte
 };
 
+// Estrutura principal para armazenar um texto e seus atributos
 struct Texto
 {
-    int id;
-    int x;
-    int y;
-    char a;
-    char *corb;
-    char *corp;
-    char *txto;
-    TextStyle *textStyle;
+    int id;               // Identificador único
+    int x;                // Coordenada X
+    int y;                // Coordenada Y
+    char a;               // Alinhamento
+    char *corb;           // Cor da borda
+    char *corp;           // Cor de preenchimento
+    char *txto;           // Conteúdo do texto
+    TextStyle *textStyle; // Estilo do texto
 };
 
-// Helper: duplica string com alocação
+// Função auxiliar: duplica uma string com alocação segura de memória
+// Retorna NULL se a string de entrada for NULL
+// Em caso de falha na alocação, termina o programa
 static char *safe_strdup(const char *s)
 {
     if (s == NULL)
@@ -38,6 +42,9 @@ static char *safe_strdup(const char *s)
     return d;
 }
 
+// Cria uma nova instância de texto com todos os seus atributos
+// Aloca memória dinamicamente para o texto e todas as suas strings
+// Em caso de falha na alocação, termina o programa
 Texto *createText(int id, int x, int y, char a, const char *corb, const char *corp, const char *txto, const char *fFamily, const char *fWeight, const char *fSize)
 {
     Texto *t = (Texto *)malloc(sizeof(Texto));

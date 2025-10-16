@@ -1,70 +1,143 @@
-// #include "retângulo.h"
-// #include <stdlib.h>
-// #include <string.h>
+#include "retângulo.h"
+#include <stdlib.h>
+#include <string.h>
 
-// typedef struct
-// {
-//     int id;
-//     float x;
-//     float y;
-//     float w;
-//     float h;
-//     char corb[32];
-//     char corp[32];
-// } Rectangle;
+typedef struct
+{
+    int id;
+    float x;
+    float y;
+    float w;
+    float h;
+    char corb[32];
+    char corp[32];
+} Rectangle_t;
 
-// void createRectangle(float x, float y, float w, float h, char *corb, char *corp, int id)
-// {
-//     Rectangle *r = (Rectangle *)malloc(sizeof(Rectangle));
-//     if (r == NULL)
-//     {
-//         printf("Erro ao alocar memória.");
-//         exit(1);
-//     }
+void createRectangle(float x, float y, float w, float h, char *corb, char *corp, int id)
+{
 
-//     r->y = y;
-//     r->x = x;
-//     r->w = w;
-//     r->h = h;
-//     r->id = id;
+    if (!corb || !corp)
+    {
+        return NULL;
+    }
+    Rectangle_t *r = (Rectangle_t *)malloc(sizeof(Rectangle_t));
+    if (r == NULL)
+    {
+        printf("Erro ao alocar memória.");
+        exit(1);
+    }
 
-//     strcpy(r->corp, corp);
+    r->y = y;
+    r->x = x;
+    r->w = w;
+    r->h = h;
+    r->id = id;
 
-//     strcpy(r->corb, corb);
-// }
+    r->corb = duplicate_string(corb);
+    if (!r->corb)
+    {
+        free(r);
+        return NULL;
+    }
+    r->corp = duplicate_string(corp);
+    if (!r->corp)
+    {
+        free(r->corb);
+        free(r);
 
-// float areaRectangle(Rectangle *r)
-// {
-//     float area = r->w * r->h;
-//     return area;
-// }
+        return NULL;
+    }
+}
 
-// float getX_rec(Rectangle *r)
-// {
-//     return r->x;
-// }
+float areaRectangle(Rectangle r)
+{
+    Rectangle_t *retangulo = (Rectangle *)r;
+    if (!retangulo)
+    {
+        return -1;
+    }
+    float area = retangulo->w * retangulo->h;
+    return area;
+}
 
-// float getY_rec(Rectangle *r)
-// {
-//     return r->y;
-// }
+float getW_rec(Rectangle r)
+{
+    Rectangle_t *retangulo = (Rectangle *)r;
+    if (!retangulo)
+    {
+        return -1;
+    }
+    return retangulo->w;
+}
 
-// int getID_rec(Rectangle *r)
-// {
-//     return r->id;
-// }
+float getH_rec(Rectangle r)
+{
+    Rectangle_t *retangulo = (Rectangle *)r;
+    if (!retangulo)
+    {
+        return -1;
+    }
+    return retangulo->h;
+}
 
-// char *getCorb_rec(Rectangle *r)
-// {
-//     return r->corb;
-// }
+float getX_rec(Rectangle r)
+{
+    Rectangle_t *retangulo = (Rectangle *)r;
+    if (!retangulo)
+    {
+        return 0.0;
+    }
+    return retangulo->x;
+}
 
-// char *getCorp_rec(Rectangle *r)
-// {
-//     return r->corp;
-// }
+float getY_rec(Rectangle r)
+{
+    Rectangle_t *retangulo = (Rectangle *)r;
+    if (!retangulo)
+    {
+        return 0.0;
+    }
+    return retangulo->y;
+}
 
-// void deleteRectangle(Rectangle *r)
-// {
-//     free(r);
-// }
+int getID_rec(Rectangle r)
+{
+    Rectangle_t *retangulo = (Rectangle *)r;
+    if (!retangulo)
+    {
+        return -1;
+    }
+    return retangulo->id;
+}
+
+char *getCorb_rec(Rectangle r)
+{
+    Rectangle_t *retangulo = (Rectangle *)r;
+    if (!retangulo)
+    {
+        return NULL;
+    }
+    return retangulo->corb;
+}
+
+char *getCorp_rec(Rectangle r)
+{
+    Rectangle_t *retangulo = (Rectangle *)r;
+    if (!retangulo)
+    {
+        return NULL;
+    }
+    return retangulo->corp;
+}
+
+void deleteRectangle(Rectangle r)
+{
+    Rectangle_t *retangulo = (Rectangle_t *)c;
+    if (!retangulo)
+    {
+        return;
+    }
+    free(retangulo->corb);
+    free(retangulo->corp);
+    free(retangulo);
+}
