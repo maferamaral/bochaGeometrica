@@ -78,4 +78,11 @@ char text_get_anchor(Text text);
  */
 const char *text_get_text(Text text);
 
+/**
+ * Retorna o comprimento (número de caracteres) do texto
+ * @param text Text instance
+ * @return número de caracteres no texto ou -1 se text for NULL
+ */
+int text_get_length(Text text);
+
 #endif // TEXT_H

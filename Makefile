@@ -1,6 +1,6 @@
 # Makefile automatizado para projeto C
 PROJ_NAME = ted
-LIBS =
+LIBS = -lm
 
 # Busca arquivos fonte
 SRC_FILES := $(shell find src -name "*.c" 2>/dev/null)

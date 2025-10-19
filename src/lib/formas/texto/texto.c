@@ -6,7 +6,8 @@
 /**
  * Internal Text structure
  */
-struct Text {
+struct Text
+{
   int id;
   double x;
   double y;
@@ -17,13 +18,16 @@ struct Text {
 };
 
 void *text_create(int id, double x, double y, const char *border_color,
-                  const char *fill_color, char anchor, const char *text) {
-  if (!border_color || !fill_color || !text) {
+                  const char *fill_color, char anchor, const char *text)
+{
+  if (!border_color || !fill_color || !text)
+  {
     return NULL;
   }
 
   struct Text *t = malloc(sizeof(struct Text));
-  if (!t) {
+  if (!t)
+  {
     return NULL;
   }
 
@@ -33,20 +37,23 @@ void *text_create(int id, double x, double y, const char *border_color,
   t->anchor = anchor;
 
   t->border_color = duplicate_string(border_color);
-  if (!t->border_color) {
+  if (!t->border_color)
+  {
     free(t);
     return NULL;
   }
 
   t->fill_color = duplicate_string(fill_color);
-  if (!t->fill_color) {
+  if (!t->fill_color)
+  {
     free(t->border_color);
     free(t);
     return NULL;
   }
 
   t->text = duplicate_string(text);
-  if (!t->text) {
+  if (!t->text)
+  {
     free(t->border_color);
     free(t->fill_color);
     free(t);
@@ -56,7 +63,8 @@ void *text_create(int id, double x, double y, const char *border_color,
   return t;
 }
 
-void text_destroy(void *text) {
+void text_destroy(void *text)
+{
   if (!text)
     return;
 
@@ -67,44 +75,61 @@ void text_destroy(void *text) {
   free(t);
 }
 
-int text_get_id(void *text) {
+int text_get_id(void *text)
+{
   if (!text)
     return -1;
   return ((struct Text *)text)->id;
 }
 
-double text_get_x(void *text) {
+double text_get_x(void *text)
+{
   if (!text)
     return 0.0;
   return ((struct Text *)text)->x;
 }
 
-double text_get_y(void *text) {
+double text_get_y(void *text)
+{
   if (!text)
     return 0.0;
   return ((struct Text *)text)->y;
 }
 
-const char *text_get_border_color(void *text) {
+const char *text_get_border_color(void *text)
+{
   if (!text)
     return NULL;
   return ((struct Text *)text)->border_color;
 }
 
-const char *text_get_fill_color(void *text) {
+const char *text_get_fill_color(void *text)
+{
   if (!text)
     return NULL;
   return ((struct Text *)text)->fill_color;
 }
 
-char text_get_anchor(void *text) {
+char text_get_anchor(void *text)
+{
   if (!text)
     return '\0';
   return ((struct Text *)text)->anchor;
 }
 
-const char *text_get_text(void *text) {
+const char *text_get_text(void *text)
+{
   if (!text)
     return NULL;
   return ((struct Text *)text)->text;
+}
+
+int text_get_length(void *text)
+{
+  if (!text)
+    return -1;
+  struct Text *t = (struct Text *)text;
+  if (!t->text)
+    return 0;
+  return (int)strlen(t->text);
 }

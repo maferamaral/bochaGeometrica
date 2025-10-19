@@ -1,8 +1,8 @@
 #ifndef DISPARADOR_H
 #define DISPARADOR_H
 
-#include <stdio.h>
 #include "../pilha/pilha.h"
+#include <stdio.h>
 
 // Declarações opacas para os tipos internos
 typedef struct Carregador Carregador;
@@ -33,14 +33,5 @@ float disparador_get_x(Disparador *d);
 float disparador_get_y(Disparador *d);
 void disparador_reportar_topo(Disparador *d, FILE *txt);
 void carregador_reportar_figuras(Carregador *c, FILE *txt);
-
-// Funções auxiliares usadas internamente por disparador.c com nomes alternativos
-// (existem chamadas no .c que usam nomes diferentes; provêmos protótipos públicos
-// caso sejam necessários em outras unidades.)
-int vazia(Stack *s); // mapeamento possível para stack_is_empty
-int pop(Stack *s, void **out);
-int inicializar(Stack *s);
-int push(Stack *s, void *item);
-void liberar_pilha(Stack *s);
 
 #endif // DISPARADOR_H

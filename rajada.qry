@@ -1,0 +1,29 @@
+# Arquivo .qry demonstrando rajadas de disparos
+# Este arquivo mostra como usar o comando rjd para disparar múltiplas formas em sequência
+
+# 1. Posiciona o disparador 1 no centro da arena
+pd 1 400 300
+
+# 2. Carrega 10 formas do chão no carregador esquerdo
+lc 1 10
+
+# 3. Carrega 8 formas do chão no carregador direito
+lc 2 8
+
+# 4. Encaixa os carregadores no disparador
+atch 1 1 2
+
+# 5. Rajada de disparos usando o carregador esquerdo
+# Deslocamento inicial: dx=100, dy=0
+# Incremento a cada disparo: ix=10, iy=-5
+# Isso criará uma sequência de disparos em arco
+rjd 1 e 100 0 10 -5
+
+# 6. Rajada de disparos usando o carregador direito
+# Deslocamento inicial: dx=0, dy=80
+# Incremento a cada disparo: ix=15, iy=0
+# Isso criará uma sequência horizontal de disparos
+rjd 1 d 0 80 15 0
+
+# 7. Processa todas as figuras da arena
+calc

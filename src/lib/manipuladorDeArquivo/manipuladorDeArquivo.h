@@ -6,6 +6,8 @@ typedef void *FileData;
 // Lê um arquivo e retorna um ponteiro para FileData contendo as linhas em uma
 // fila
 FileData readFile(const char *filepath);
+// cria o arquivo
+FileData file_data_create(const char *filepath);
 
 // Retorna a fila de linhas de um FileData
 Queue getLinesQueue(FileData fileData);
