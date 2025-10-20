@@ -1,0 +1,21 @@
+Disparador 10 posicionado em (300.00, 300.00)
+Carregador 1: 0 formas carregadas
+Carregadores 1 e 1 encaixados no disparador 10
+Botão e do disparador 10 pressionado 1 vezes
+Topo do disparador 10: vazio
+Disparo do disparador 10: deslocamento (0.00, 0.00)
+Posição final: (300.00, 300.00)
+Topo do disparador 10: vazio
+Disparador 10 não possui forma para disparar
+Botão e do disparador 10 pressionado 1 vezes
+Topo do disparador 10: vazio
+Disparo do disparador 10: deslocamento (0.00, 0.00)
+Posição final: (300.00, 300.00)
+Topo do disparador 10: vazio
+Disparador 10 não possui forma para disparar
+Processando figuras da arena...
+Total de formas na arena: 0
+Verificação de colisões concluída
+Área total esmagada no round: 0.00
+Área total esmagada: 0.00
+Pontuação do jogo: 0.00
