@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
       destroy_geo_waste(ground);
       exit(1);
     }
-    Qry qry = execute_qry_commands(qry_file, geo_file, ground, outputPath);
+    Qry qry = executar_comandos_qry(qry_file, geo_file, ground, outputPath);
     destroyFileData(qry_file);
     destroy_qry_waste(qry);
   }

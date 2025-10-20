@@ -5,8 +5,8 @@
 
 typedef void *Qry; // principais operações do qry_handler
 
-Qry execute_qry_commands(FileData qryFileData, FileData geoFileData,
-                         Ground ground, const char *output_path);
+Qry executar_comandos_qry(FileData qryFileData, FileData geoFileData,
+                          Ground ground, const char *output_path);
 
 void destroy_qry_waste(Qry qry);
 

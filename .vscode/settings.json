@@ -3,6 +3,8 @@
         "circulo.h": "c",
         "stdlib.h": "c",
         "manipuladordearquivo.h": "c",
-        "formas.h": "c"
+        "formas.h": "c",
+        "linha.h": "c",
+        "text_style.h": "c"
     }
 }

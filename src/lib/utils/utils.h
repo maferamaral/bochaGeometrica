@@ -20,4 +20,11 @@ char *duplicate_string(const char *s);
  */
 double distancia(double x1, double y1, double x2, double y2);
 
+/**
+ * Inverte uma cor (troca preto por branco e vice-versa)
+ * @param color Cor original
+ * @return Nova cor invertida ou NULL em caso de erro
+ */
+char *invert_color(const char *color);
+
 #endif // UTILS_H
