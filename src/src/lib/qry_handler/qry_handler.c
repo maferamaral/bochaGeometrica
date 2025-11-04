@@ -93,7 +93,7 @@ static void executar_comando_rjd(Shooter_t **atiradores, int *atiradoresCount,
                                  Stack pilhaParaLiberar, Stack arena,
                                  Loader_t *carregadores, int *carregadoresCount,
                                  FILE *arquivoTxt);
-static void executar_comando_calc(Stack arena, Ground ground, FILE *arquivoTxt);
+static void executar_comando_calc(Stack arena, Ground ground, int quantidadeDeComandos, FILE *arquivoTxt);
 static int encontrar_indice_atirador_por_id(Shooter_t **atiradores, int atiradoresCount,
                                             int id);
 
@@ -177,6 +177,8 @@ Qry executar_comandos_qry(FileData qryFileData, FileData geoFileData,
   }
   qry->arena = stack_create();
   qry->pilhaParaLiberar = stack_create();
+
+  int quantidadeDeComandos = queue_size(getLinesQueue(qryFileData));
 
   // Note: qry should NOT be added to pilhaParaLiberar as it causes premature freeing
 
@@ -269,7 +271,7 @@ Qry executar_comandos_qry(FileData qryFileData, FileData geoFileData,
     }
     else if (strcmp(command, "calc") == 0)
     {
-      executar_comando_calc(qry->arena, ground, arquivoTxt);
+      executar_comando_calc(qry->arena, ground, quantidadeDeComandos, arquivoTxt);
     }
     else
       printf("Unknown command: %s\n", command);
@@ -896,7 +898,7 @@ static void executar_comando_rjd(Shooter_t **atiradores, int *atiradoresCount,
   }
 }
 
-void executar_comando_calc(Stack arena, Ground ground, FILE *arquivoTxt)
+void executar_comando_calc(Stack arena, Ground ground, int quantidadeDeComandos, FILE *arquivoTxt)
 {
   // We need to process in launch order (oldest to newest). Arena is a stack
   // (LIFO), so first reverse into a temporary stack to get FIFO order when
@@ -1031,6 +1033,7 @@ void executar_comando_calc(Stack arena, Ground ground, FILE *arquivoTxt)
   // Exibir o calculated result
   fprintf(arquivoTxt, "COMANDO: calc\n");
   fprintf(arquivoTxt, "  Área esmagada: %.2lf\n", area_esmagada_total);
+  fprintf(arquivoTxt, "  Quantidade de comandos: %d\n", quantidadeDeComandos);
   // Limpar temporary stack
   stack_destroy(temp);
 }
