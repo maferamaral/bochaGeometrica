@@ -19,5 +19,6 @@ void *queue_dequeue(Queue queue);
 int queue_is_empty(Queue queue);
 // Destroi a fila liberando nós internos (não libera os dados apontados)
 void queue_destroy(Queue queue);
-
+// Retorna o tamanho da fila
+int queue_size(Queue queue);
 #endif // FILA_H
