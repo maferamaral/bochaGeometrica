@@ -9,29 +9,23 @@
  * Responsabilidade: gerenciar um "disparador" que possui uma pilha de
  * itens prontos para disparo e dois carregadores (esquerdo/dir) que
  * armazenam itens que podem ser movidos para o disparador.
- *
- * Observações:
- * - Este arquivo foi comentado para explicar comportamentos, parâmetros
- *   e pré-condições das funções.
- * - Algumas inconsistências com a API de pilha podem existir (nomes como
- *   pop, vazia, inicializar). Esses comentários ajudam a localizar pontos
- *   que podem precisar de alinhamento com `pilha.h`.
  */
 
 // Estrutura que representa um carregador de figuras.
 // - id: identificador do carregador
 // - carga: pilha (Stack) que guarda as figuras/carregamentos
+// Estrutura que representa o disparador:
+// - id: identificador do disparador
+// - disparador: pilha principal de items prontos para disparo
+// - dir/esq: ponteiros para carregadores direito e esquerdo
+// - x,y: posição do disparador (usada para relatórios/posição gráfica)
+
 struct Carregador
 {
   int id;
   Stack carga;
 };
 
-// Estrutura que representa o disparador:
-// - id: identificador do disparador
-// - disparador: pilha principal de items prontos para disparo
-// - dir/esq: ponteiros para carregadores direito e esquerdo
-// - x,y: posição do disparador (usada para relatórios/posição gráfica)
 struct Disparador
 {
   int id;
@@ -43,37 +37,19 @@ struct Disparador
 
 Carregador *criar_carregador(int id)
 {
-  /*
-   * Aloca e inicializa um carregador.
-   * Retorna NULL em caso de falha de alocação.
-   *
-   * Observação: o código atual usa malloc(sizeof(Carregador *)) — isto
-   * aloca o tamanho de um ponteiro, e não o tamanho da estrutura.
-   * Isso pode causar corrupção de memória em execução. Mantive a
-   * implementação original, apenas documentei o ponto para futura
-   * correção.
-   */
-  Carregador *c = malloc(sizeof(Carregador));
+  Carregador *c = malloc(sizeof(struct Carregador));
   if (c == NULL)
   {
     return NULL;
   }
   c->id = id;
-  /* Inicializa a pilha usando a API correta */
   c->carga = stack_create();
   return c;
 }
 
 Disparador *criar_disp(int id, float x, float y)
 {
-  /*
-   * Cria um novo disparador com posição (x,y) e identificador id.
-   * Aloca também carregadores esquerdo e direito vazios.
-   *
-   * Observação: igual ao criar_carregador, aqui o malloc usa sizeof
-   * do ponteiro em vez do tipo; é um local que merece correção futura.
-   */
-  Disparador *d = malloc(sizeof(Disparador));
+  Disparador *d = malloc(sizeof(struct Disparador));
   if (d == NULL)
   {
     return NULL;
@@ -81,23 +57,22 @@ Disparador *criar_disp(int id, float x, float y)
   d->x = x;
   d->y = y;
   d->id = id;
-  /* aloca os carregadores esquerdo e direito */
-  d->dir = malloc(sizeof(Carregador));
-  d->esq = malloc(sizeof(Carregador));
+
+  d->dir = malloc(sizeof(struct Carregador));
+  d->esq = malloc(sizeof(struct Carregador));
 
   if (!d->dir || !d->esq)
   {
-    free(d->dir);
-    free(d->esq);
+    if (d->dir)
+      free(d->dir); // Segurança extra
+    if (d->esq)
+      free(d->esq);
     free(d);
     return NULL;
   }
 
-  /* inicializa as pilhas internas dos carregadores */
   d->esq->carga = stack_create();
   d->dir->carga = stack_create();
-
-  /* inicializa a pilha do disparador */
   d->disparador = stack_create();
 
   return d;
