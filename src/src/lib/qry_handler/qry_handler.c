@@ -9,7 +9,6 @@
 
 Qry executar_comandos_qry(FileData qryFile, FileData geoFile, Ground ground, const char *outPath)
 {
-
   char *geoName = getFileName(geoFile);
   char *qryName = getFileName(qryFile);
 
@@ -68,14 +67,12 @@ Qry executar_comandos_qry(FileData qryFile, FileData geoFile, Ground ground, con
       double dx = atof(strtok(NULL, " "));
       double dy = atof(strtok(NULL, " "));
       char *anot = strtok(NULL, " ");
-
       double sx, sy;
       void *forma = sistema_preparar_disparo(sistema, id, &sx, &sy);
-
       if (forma)
       {
         relatorio_incrementar_disparos(relatorio);
-        arena_receber_disparo(arena, forma, sx + dx, sy + dy, sx, sy, (strcmp(anot, "v") == 0));
+        arena_receber_disparo(arena, forma, sx + dx, sy + dy, sx, sy, (anot && strcmp(anot, "v") == 0));
       }
       relatorio_registrar_comando(relatorio, "dsp", linhaCopy);
     }
@@ -88,7 +85,8 @@ Qry executar_comandos_qry(FileData qryFile, FileData geoFile, Ground ground, con
       double incX = atof(strtok(NULL, " "));
       double incY = atof(strtok(NULL, " "));
 
-      int k = 1;
+      // CORREÇÃO: Loop inicia em 0 para incluir o disparo inicial dx,dy
+      int k = 0;
       while (1)
       {
         sistema_shft(sistema, id, lado, 1);
@@ -98,7 +96,10 @@ Qry executar_comandos_qry(FileData qryFile, FileData geoFile, Ground ground, con
           break;
 
         relatorio_incrementar_disparos(relatorio);
-        arena_receber_disparo(arena, f, sx + (k * incX) + dx, sy + (k * incY) + dy, sx, sy, 0);
+        // Calcula a posição da rajada
+        double finalX = sx + dx + (k * incX);
+        double finalY = sy + dy + (k * incY);
+        arena_receber_disparo(arena, f, finalX, finalY, sx, sy, 0);
         k++;
       }
       relatorio_registrar_comando(relatorio, "rjd", linhaCopy);
@@ -108,16 +109,13 @@ Qry executar_comandos_qry(FileData qryFile, FileData geoFile, Ground ground, con
       arena_processar_calc(arena, ground, relatorio);
       relatorio_registrar_comando(relatorio, "calc", "");
     }
-
     free(linha);
   }
 
   relatorio_escrever_final(relatorio, qtdCmds);
   relatorio_gerar_svg(relatorio, ground, arena);
-
   sistema_destruir(sistema);
   arena_destruir(arena);
-
   return (Qry)relatorio;
 }
 

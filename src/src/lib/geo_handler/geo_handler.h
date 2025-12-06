@@ -3,7 +3,7 @@
 #include "../fila/fila.h"
 #include "../pilha/pilha.h"
 #include "../manipuladorDeArquivo/manipuladorDeArquivo.h"
-#include <stdio.h> // Necessário para FILE*
+#include <stdio.h>
 
 typedef void *Ground;
 
@@ -15,7 +15,10 @@ void destroy_geo_waste(Ground ground);
 Queue get_ground_queue(Ground ground);
 Stack get_ground_shapes_stack_to_free(Ground ground);
 
-// NOVA FUNÇÃO: Permite desenhar uma forma opaca num ficheiro SVG
+// Escreve a tag SVG de uma forma num ficheiro
 void geo_escrever_svg_forma(void *shape, FILE *svg);
+
+// Clona uma forma para uma nova posição (x,y) e regista-a no Ground para limpeza futura
+void *geo_clonar_forma(void *shape, double x, double y, Ground ground);
 
 #endif // GEO_HANDLER_H

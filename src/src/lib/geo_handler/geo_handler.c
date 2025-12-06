@@ -10,7 +10,7 @@
 #include "../pilha/pilha.h"
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h> // Adicionado para malloc/free
+#include <stdlib.h>
 
 typedef struct
 {
@@ -25,7 +25,7 @@ typedef struct
   void *data;
 } Shape_t;
 
-// private functions
+// Funções privadas
 static void executar_comando_circulo(Ground_t *ground);
 static void execute_rectangle_command(Ground_t *ground);
 static void execute_line_command(Ground_t *ground);
@@ -55,14 +55,9 @@ Ground execute_geo_commands(FileData fileData, const char *output_path,
     return NULL;
   }
 
-  // Iterar sobre uma cópia ou preservando a fila original se necessário
-  // Assumindo que podemos consumir a fila do FileData:
   while (!queue_is_empty(lines))
   {
     char *line = (char *)queue_dequeue(lines);
-    // Fazemos uma cópia da linha para não estragar a string original se for reutilizada
-    // Mas queue_dequeue retorna o ponteiro. O strtok modifica.
-    // O ideal seria duplicar, mas vamos seguir o padrão do teu código.
     char *command = strtok(line, " ");
 
     if (command == NULL)
@@ -94,8 +89,6 @@ void destroy_geo_waste(Ground ground)
   while (!stack_is_empty(ground_t->shapesStackToFree))
   {
     Shape_t *shape = stack_pop(ground_t->shapesStackToFree);
-    // Nota: data é libertado pelos destrutores específicos se necessário,
-    // mas aqui estamos apenas a libertar o wrapper Shape_t
     free(shape);
   }
   stack_destroy(ground_t->shapesStackToFree);
@@ -118,9 +111,7 @@ Stack get_ground_shapes_stack_to_free(Ground ground)
   return ground_t->shapesStackToFree;
 }
 
-// ========================
-// FUNÇÃO PÚBLICA DE DESENHO (NOVA)
-// ========================
+// Implementação da função de desenho SVG
 void geo_escrever_svg_forma(void *shape_ptr, FILE *file)
 {
   Shape_t *shape = (Shape_t *)shape_ptr;
@@ -165,108 +156,108 @@ void geo_escrever_svg_forma(void *shape_ptr, FILE *file)
   }
 }
 
-// ========================
-// Funções Privadas
-// ========================
+// Implementação da função de clonagem
+void *geo_clonar_forma(void *shape_ptr, double x, double y, Ground ground)
+{
+  Shape_t *src = (Shape_t *)shape_ptr;
+  if (!src)
+    return NULL;
 
+  void *newData = NULL;
+  if (src->type == CIRCLE)
+  {
+    Circulo c = (Circulo)src->data;
+    newData = circulo_criar(circulo_get_id(c), x, y, circulo_get_raio(c),
+                            circulo_get_cor_borda(c), circulo_get_cor_preenchimento(c));
+  }
+  else if (src->type == RECTANGLE)
+  {
+    Rectangle r = (Rectangle)src->data;
+    newData = retangulo_criar(retangulo_get_id(r), x, y, retangulo_get_largura(r), retangulo_get_altura(r),
+                              retangulo_get_cor_borda(r), retangulo_get_cor_preenchimento(r));
+  }
+  else if (src->type == LINE)
+  {
+    Line l = (Line)src->data;
+    double dx = x - line_get_x1(l);
+    double dy = y - line_get_y1(l);
+    newData = line_create(line_get_id(l), x, y, line_get_x2(l) + dx, line_get_y2(l) + dy, line_get_color(l));
+  }
+  else if (src->type == TEXT)
+  {
+    Text t = (Text)src->data;
+    newData = text_create(text_get_id(t), x, y, text_get_border_color(t), text_get_fill_color(t),
+                          text_get_anchor(t), text_get_text(t));
+  }
+
+  if (newData)
+  {
+    Shape_t *newShape = malloc(sizeof(Shape_t));
+    newShape->type = src->type;
+    newShape->data = newData;
+
+    // Regista para limpeza
+    if (ground)
+    {
+      Stack s = get_ground_shapes_stack_to_free(ground);
+      if (s)
+        stack_push(s, newShape);
+    }
+    return newShape;
+  }
+  return NULL;
+}
+
+// Implementações privadas (simplificadas para manter o código limpo, mas funcionais)
 static void executar_comando_circulo(Ground_t *ground)
 {
-  char *identifier = strtok(NULL, " ");
-  char *posX = strtok(NULL, " ");
-  char *posY = strtok(NULL, " ");
-  char *radius = strtok(NULL, " ");
-  char *borderColor = strtok(NULL, " ");
-  char *fillColor = strtok(NULL, " ");
-
-  Circulo circulo = circulo_criar(atoi(identifier), atof(posX), atof(posY),
-                                  atof(radius), borderColor, fillColor);
-
-  Shape_t *shape = malloc(sizeof(Shape_t));
-  shape->type = CIRCLE;
-  shape->data = circulo;
-  queue_enqueue(ground->shapesQueue, shape);
-  stack_push(ground->shapesStackToFree, shape);
-  queue_enqueue(ground->svgQueue, shape);
+  char *id = strtok(NULL, " "), *x = strtok(NULL, " "), *y = strtok(NULL, " "), *r = strtok(NULL, " "), *cb = strtok(NULL, " "), *cp = strtok(NULL, " ");
+  Shape_t *s = malloc(sizeof(Shape_t));
+  s->type = CIRCLE;
+  s->data = circulo_criar(atoi(id), atof(x), atof(y), atof(r), cb, cp);
+  queue_enqueue(ground->shapesQueue, s);
+  stack_push(ground->shapesStackToFree, s);
+  queue_enqueue(ground->svgQueue, s);
 }
-
 static void execute_rectangle_command(Ground_t *ground)
 {
-  char *identifier = strtok(NULL, " ");
-  char *posX = strtok(NULL, " ");
-  char *posY = strtok(NULL, " ");
-  char *width = strtok(NULL, " ");
-  char *height = strtok(NULL, " ");
-  char *borderColor = strtok(NULL, " ");
-  char *fillColor = strtok(NULL, " ");
-
-  Rectangle rectangle =
-      retangulo_criar(atoi(identifier), atof(posX), atof(posY), atof(width),
-                      atof(height), borderColor, fillColor);
-
-  Shape_t *shape = malloc(sizeof(Shape_t));
-  shape->type = RECTANGLE;
-  shape->data = rectangle;
-  queue_enqueue(ground->shapesQueue, shape);
-  stack_push(ground->shapesStackToFree, shape);
-  queue_enqueue(ground->svgQueue, shape);
+  char *id = strtok(NULL, " "), *x = strtok(NULL, " "), *y = strtok(NULL, " "), *w = strtok(NULL, " "), *h = strtok(NULL, " "), *cb = strtok(NULL, " "), *cp = strtok(NULL, " ");
+  Shape_t *s = malloc(sizeof(Shape_t));
+  s->type = RECTANGLE;
+  s->data = retangulo_criar(atoi(id), atof(x), atof(y), atof(w), atof(h), cb, cp);
+  queue_enqueue(ground->shapesQueue, s);
+  stack_push(ground->shapesStackToFree, s);
+  queue_enqueue(ground->svgQueue, s);
 }
-
 static void execute_line_command(Ground_t *ground)
 {
-  char *identifier = strtok(NULL, " ");
-  char *x1 = strtok(NULL, " ");
-  char *y1 = strtok(NULL, " ");
-  char *x2 = strtok(NULL, " ");
-  char *y2 = strtok(NULL, " ");
-  char *color = strtok(NULL, " ");
-
-  Line line = line_create(atoi(identifier), atof(x1), atof(y1), atof(x2),
-                          atof(y2), color);
-
-  Shape_t *shape = malloc(sizeof(Shape_t));
-  shape->type = LINE;
-  shape->data = line;
-  queue_enqueue(ground->shapesQueue, shape);
-  stack_push(ground->shapesStackToFree, shape);
-  queue_enqueue(ground->svgQueue, shape);
+  char *id = strtok(NULL, " "), *x1 = strtok(NULL, " "), *y1 = strtok(NULL, " "), *x2 = strtok(NULL, " "), *y2 = strtok(NULL, " "), *c = strtok(NULL, " ");
+  Shape_t *s = malloc(sizeof(Shape_t));
+  s->type = LINE;
+  s->data = line_create(atoi(id), atof(x1), atof(y1), atof(x2), atof(y2), c);
+  queue_enqueue(ground->shapesQueue, s);
+  stack_push(ground->shapesStackToFree, s);
+  queue_enqueue(ground->svgQueue, s);
 }
-
 static void execute_text_command(Ground_t *ground)
 {
-  char *identifier = strtok(NULL, " ");
-  char *posX = strtok(NULL, " ");
-  char *posY = strtok(NULL, " ");
-  char *borderColor = strtok(NULL, " ");
-  char *fillColor = strtok(NULL, " ");
-  char *anchor = strtok(NULL, " ");
-  char *text = strtok(NULL, "");
-
-  Text text_obj = text_create(atoi(identifier), atof(posX), atof(posY),
-                              borderColor, fillColor, *anchor, text);
-
-  Shape_t *shape = malloc(sizeof(Shape_t));
-  shape->type = TEXT;
-  shape->data = text_obj;
-  queue_enqueue(ground->shapesQueue, shape);
-  stack_push(ground->shapesStackToFree, shape);
-  queue_enqueue(ground->svgQueue, shape);
+  char *id = strtok(NULL, " "), *x = strtok(NULL, " "), *y = strtok(NULL, " "), *cb = strtok(NULL, " "), *cp = strtok(NULL, " "), *a = strtok(NULL, " "), *t = strtok(NULL, "");
+  Shape_t *s = malloc(sizeof(Shape_t));
+  s->type = TEXT;
+  s->data = text_create(atoi(id), atof(x), atof(y), cb, cp, *a, t);
+  queue_enqueue(ground->shapesQueue, s);
+  stack_push(ground->shapesStackToFree, s);
+  queue_enqueue(ground->svgQueue, s);
 }
-
 static void execute_text_style_command(Ground_t *ground)
 {
-  char *fontFamily = strtok(NULL, " ");
-  char *fontWeight = strtok(NULL, " ");
-  char *fontSize = strtok(NULL, " ");
-
-  TextStyle text_style_obj =
-      text_style_create(fontFamily, *fontWeight, atoi(fontSize));
-
-  Shape_t *shape = malloc(sizeof(Shape_t));
-  shape->type = TEXT_STYLE;
-  shape->data = text_style_obj;
-  queue_enqueue(ground->shapesQueue, shape);
-  stack_push(ground->shapesStackToFree, shape);
-  queue_enqueue(ground->svgQueue, shape);
+  char *f = strtok(NULL, " "), *w = strtok(NULL, " "), *sz = strtok(NULL, " ");
+  Shape_t *s = malloc(sizeof(Shape_t));
+  s->type = TEXT_STYLE;
+  s->data = text_style_create(f, *w, atoi(sz));
+  queue_enqueue(ground->shapesQueue, s);
+  stack_push(ground->shapesStackToFree, s);
+  queue_enqueue(ground->svgQueue, s);
 }
 
 static void create_svg_queue(Ground_t *ground, const char *output_path,
@@ -274,7 +265,7 @@ static void create_svg_queue(Ground_t *ground, const char *output_path,
 {
   const char *original_file_name = getFileName(fileData);
   size_t name_len = strlen(original_file_name);
-  char *file_name = malloc(name_len + 50); // margem extra
+  char *file_name = malloc(name_len + 50);
   strcpy(file_name, original_file_name);
   if (command_suffix != NULL)
   {
@@ -294,7 +285,6 @@ static void create_svg_queue(Ground_t *ground, const char *output_path,
     fprintf(file, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
     fprintf(file, "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1000 1000\">\n");
 
-    // Desenha formas da fila SVG temporária criada durante parsing
     while (!queue_is_empty(ground->svgQueue))
     {
       Shape_t *shape = queue_dequeue(ground->svgQueue);

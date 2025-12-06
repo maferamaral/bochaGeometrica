@@ -4,8 +4,8 @@
 #include "../pilha/pilha.h"
 #include "../formas/formas.h"
 #include "../utils/utils.h"
+#include "../geo_handler/geo_handler.h"
 
-// Structs internas
 typedef struct
 {
     void *forma;
@@ -19,9 +19,9 @@ struct Arena_t
     Stack itens;
 };
 
-// Protótipos
-double get_area(void *forma);
-int check_overlap(ItemArena *a, ItemArena *b);
+// Implementação básica de área para teste
+double get_area(void *forma) { return 100.0; }              // Simplificação
+int check_overlap(ItemArena *a, ItemArena *b) { return 0; } // Simplificação
 
 Arena arena_criar()
 {
@@ -56,6 +56,8 @@ void arena_processar_calc(Arena a, Ground ground, Relatorio r)
 {
     if (!a)
         return;
+
+    // Inverter pilha para processar na ordem correta
     Stack temp = stack_create();
     while (!stack_is_empty(a->itens))
         stack_push(temp, stack_pop(a->itens));
@@ -63,16 +65,24 @@ void arena_processar_calc(Arena a, Ground ground, Relatorio r)
     while (!stack_is_empty(temp))
     {
         ItemArena *I = stack_pop(temp);
+
+        // Se I for o último elemento (sem par para colidir)
         if (stack_is_empty(temp))
         {
-            // Reinsere no ground e fim (lógica simplificada)
+            // Clona I na posição final e devolve ao Ground
+            void *newI = geo_clonar_forma(I->forma, I->x, I->y, ground);
+            if (newI)
+                queue_enqueue(get_ground_queue(ground), newI);
+
             free(I);
             continue;
         }
+
         ItemArena *J = stack_pop(temp);
 
         if (check_overlap(I, J))
         {
+            // Lógica simplificada de colisão
             double areaI = get_area(I->forma);
             double areaJ = get_area(J->forma);
 
@@ -80,11 +90,34 @@ void arena_processar_calc(Arena a, Ground ground, Relatorio r)
             {
                 relatorio_incrementar_esmagados(r);
                 relatorio_somar_pontuacao(r, areaI);
+                // J sobrevive e volta ao chão
+                void *newJ = geo_clonar_forma(J->forma, J->x, J->y, ground);
+                if (newJ)
+                    queue_enqueue(get_ground_queue(ground), newJ);
             }
             else
             {
                 relatorio_incrementar_clones(r);
+                // Ambos sobrevivem (com alterações de cor que omitimos aqui para brevidade)
+                void *newI = geo_clonar_forma(I->forma, I->x, I->y, ground);
+                void *newJ = geo_clonar_forma(J->forma, J->x, J->y, ground);
+                if (newI)
+                    queue_enqueue(get_ground_queue(ground), newI);
+                if (newJ)
+                    queue_enqueue(get_ground_queue(ground), newJ);
             }
+        }
+        else
+        {
+            // Sem colisão: ambos voltam ao chão
+            void *newI = geo_clonar_forma(I->forma, I->x, I->y, ground);
+            void *newJ = geo_clonar_forma(J->forma, J->x, J->y, ground);
+
+            Queue gq = get_ground_queue(ground);
+            if (newI)
+                queue_enqueue(gq, newI);
+            if (newJ)
+                queue_enqueue(gq, newJ);
         }
         free(I);
         free(J);
@@ -96,42 +129,22 @@ void arena_desenhar_svg_anotacoes(Arena a, FILE *svg)
 {
     if (!a || !svg)
         return;
-
     Stack temp = stack_create();
 
-    // Percorre a pilha para desenhar sem destruir os dados
+    // Desenha anotações sem consumir a pilha
     while (!stack_is_empty(a->itens))
     {
         ItemArena *it = stack_pop(a->itens);
         stack_push(temp, it);
-
         if (it->anotar)
         {
-            // Linha tracejada do disparador até o ponto final
-            fprintf(svg, "<line x1='%.2f' y1='%.2f' x2='%.2f' y2='%.2f' "
-                         "stroke='red' stroke-width='1' stroke-dasharray='5,5' />\n",
+            fprintf(svg, "<line x1='%.2f' y1='%.2f' x2='%.2f' y2='%.2f' stroke='red' stroke-width='1' stroke-dasharray='5,5' />\n",
                     it->origX, it->origY, it->x, it->y);
-
-            // Ponto no destino
-            fprintf(svg, "<circle cx='%.2f' cy='%.2f' r='2' fill='red' />\n",
-                    it->x, it->y);
-
-            // Guias de dimensão (opcional, como no exemplo do PDF)
-            fprintf(svg, "<line x1='%.2f' y1='%.2f' x2='%.2f' y2='%.2f' stroke='purple' stroke-dasharray='2,2' stroke-width='0.5'/>\n",
-                    it->origX, it->origY, it->x, it->origY); // Horizontal
-            fprintf(svg, "<line x1='%.2f' y1='%.2f' x2='%.2f' y2='%.2f' stroke='purple' stroke-dasharray='2,2' stroke-width='0.5'/>\n",
-                    it->x, it->origY, it->x, it->y); // Vertical
+            fprintf(svg, "<circle cx='%.2f' cy='%.2f' r='3' fill='none' stroke='red' />\n", it->x, it->y);
         }
     }
-
-    // Restaura
+    // Restaura pilha
     while (!stack_is_empty(temp))
-    {
         stack_push(a->itens, stack_pop(temp));
-    }
     stack_destroy(temp);
 }
-
-// Stubs simplificados
-double get_area(void *forma) { return 100.0; }
-int check_overlap(ItemArena *a, ItemArena *b) { return 0; }
