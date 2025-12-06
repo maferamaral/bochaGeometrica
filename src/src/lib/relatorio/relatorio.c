@@ -4,11 +4,8 @@
 #include "../pilha/pilha.h"
 #include "../fila/fila.h"
 #include "../arena/arena.h"
-#include "../formas/circulo/circulo.h"
-#include "../formas/retangulo/retangulo.h"
-#include "../formas/linha/linha.h"
-#include "../formas/texto/texto.h"
-#include "../utils/utils.h"
+#include "../geo_handler/geo_handler.h"
+#include "../utils/utils.h" // Para duplicate_string
 
 struct Relatorio_t
 {
@@ -27,8 +24,6 @@ Relatorio relatorio_criar(const char *geoName, const char *qryName, const char *
         return NULL;
 
     char baseGeo[256], baseQry[256];
-
-    // Copia segura para evitar buffer overflow, assumindo nomes razoáveis
     strncpy(baseGeo, geoName, 255);
     baseGeo[255] = '\0';
     strncpy(baseQry, qryName, 255);
@@ -41,7 +36,6 @@ Relatorio relatorio_criar(const char *geoName, const char *qryName, const char *
     if (dot)
         *dot = 0;
 
-    // Alocação dinâmica para o path para evitar limites fixos pequenos
     size_t lenPath = strlen(outPath) + strlen(baseGeo) + strlen(baseQry) + 20;
     char *path = malloc(lenPath);
 
@@ -51,8 +45,7 @@ Relatorio relatorio_criar(const char *geoName, const char *qryName, const char *
         r->txtFile = fopen(path, "w");
 
         sprintf(path, "%s/%s-%s.svg", outPath, baseGeo, baseQry);
-        // CORREÇÃO: Usando duplicate_string do utils.h em vez de strdup
-        r->svgPath = duplicate_string(path);
+        r->svgPath = duplicate_string(path); // Correção do strdup
 
         free(path);
     }
@@ -119,28 +112,23 @@ void relatorio_gerar_svg(Relatorio r, Ground ground, void *arena_ptr)
 
     fprintf(svg, "<?xml version=\"1.0\"?>\n<svg xmlns=\"http://www.w3.org/2000/svg\">\n");
 
-    // Desenha as formas do chão (Ground)
+    // 1. Desenha as formas do chão
     Queue q = get_ground_queue(ground);
     Queue temp = queue_create();
 
-    // Loop para desenhar formas do chão sem destruir a fila original
     while (!queue_is_empty(q))
     {
         void *s = queue_dequeue(q);
-        // Aqui você deve usar a lógica de desenho existente ou chamar funções do geo_handler
-        // Para simplificar, assumimos que o desenho é feito em outro lugar ou reinserimos:
-
-        // Se tiver acesso às structs internas de Shape_t aqui, pode desenhar:
-        // Exemplo: desenhar_forma_svg(svg, s);
-
+        // Desenha a forma usando a função do geo_handler
+        geo_escrever_svg_forma(s, svg);
         queue_enqueue(temp, s);
     }
-    // Restaura a fila original
+    // Restaura
     while (!queue_is_empty(temp))
         queue_enqueue(q, queue_dequeue(temp));
     queue_destroy(temp);
 
-    // Desenha as anotações da Arena
+    // 2. Desenha as anotações da Arena
     if (arena_ptr)
     {
         arena_desenhar_svg_anotacoes(arena_ptr, svg);

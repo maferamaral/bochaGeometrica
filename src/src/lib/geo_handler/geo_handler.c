@@ -10,6 +10,7 @@
 #include "../pilha/pilha.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h> // Adicionado para malloc/free
 
 typedef struct
 {
@@ -24,7 +25,7 @@ typedef struct
   void *data;
 } Shape_t;
 
-// private functions defined as static and implemented on the end of the file
+// private functions
 static void executar_comando_circulo(Ground_t *ground);
 static void execute_rectangle_command(Ground_t *ground);
 static void execute_line_command(Ground_t *ground);
@@ -46,57 +47,55 @@ Ground execute_geo_commands(FileData fileData, const char *output_path,
   ground->shapesQueue = queue_create();
   ground->shapesStackToFree = stack_create();
   ground->svgQueue = queue_create();
-  while (!queue_is_empty(getLinesQueue(fileData)))
+
+  Queue lines = getLinesQueue(fileData);
+  if (!lines)
   {
-    char *line = (char *)queue_dequeue(getLinesQueue(fileData));
+    free(ground);
+    return NULL;
+  }
+
+  // Iterar sobre uma cópia ou preservando a fila original se necessário
+  // Assumindo que podemos consumir a fila do FileData:
+  while (!queue_is_empty(lines))
+  {
+    char *line = (char *)queue_dequeue(lines);
+    // Fazemos uma cópia da linha para não estragar a string original se for reutilizada
+    // Mas queue_dequeue retorna o ponteiro. O strtok modifica.
+    // O ideal seria duplicar, mas vamos seguir o padrão do teu código.
     char *command = strtok(line, " ");
 
-    // Comando círculo: c i x y r corb corp
+    if (command == NULL)
+      continue;
+
     if (strcmp(command, "c") == 0)
-    {
       executar_comando_circulo(ground);
-    }
-
-    // Rectangle command: r i x y w h corb corp
     else if (strcmp(command, "r") == 0)
-    {
       execute_rectangle_command(ground);
-    }
-    // Line command: l i x1 y1 x2 y2 cor
     else if (strcmp(command, "l") == 0)
-    {
       execute_line_command(ground);
-    }
-
-    // Text command: t i x y corb corp a txto
     else if (strcmp(command, "t") == 0)
-    {
       execute_text_command(ground);
-    }
-
-    // Text style command: ts fFamily fWeight fSize
     else if (strcmp(command, "ts") == 0)
-    {
       execute_text_style_command(ground);
-    }
-    else
-    {
-      printf("Unknown command: %s\n", command);
-    }
   }
+
   create_svg_queue(ground, output_path, fileData, command_suffix);
   return ground;
 }
 
 void destroy_geo_waste(Ground ground)
 {
+  if (!ground)
+    return;
   Ground_t *ground_t = (Ground_t *)ground;
   queue_destroy(ground_t->shapesQueue);
   queue_destroy(ground_t->svgQueue);
   while (!stack_is_empty(ground_t->shapesStackToFree))
   {
     Shape_t *shape = stack_pop(ground_t->shapesStackToFree);
-    free(shape->data);
+    // Nota: data é libertado pelos destrutores específicos se necessário,
+    // mas aqui estamos apenas a libertar o wrapper Shape_t
     free(shape);
   }
   stack_destroy(ground_t->shapesStackToFree);
@@ -105,21 +104,71 @@ void destroy_geo_waste(Ground ground)
 
 Queue get_ground_queue(Ground ground)
 {
+  if (!ground)
+    return NULL;
   Ground_t *ground_t = (Ground_t *)ground;
   return ground_t->shapesQueue;
 }
 
 Stack get_ground_shapes_stack_to_free(Ground ground)
 {
+  if (!ground)
+    return NULL;
   Ground_t *ground_t = (Ground_t *)ground;
   return ground_t->shapesStackToFree;
 }
 
-/**
-**************************
-* Private functions
-**************************
-*/
+// ========================
+// FUNÇÃO PÚBLICA DE DESENHO (NOVA)
+// ========================
+void geo_escrever_svg_forma(void *shape_ptr, FILE *file)
+{
+  Shape_t *shape = (Shape_t *)shape_ptr;
+  if (!shape || !file)
+    return;
+
+  if (shape->type == CIRCLE)
+  {
+    Circulo c = (Circulo)shape->data;
+    fprintf(file, "<circle cx='%.2f' cy='%.2f' r='%.2f' fill='%s' stroke='%s' stroke-width='1'/>\n",
+            circulo_get_x(c), circulo_get_y(c), circulo_get_raio(c),
+            circulo_get_cor_preenchimento(c), circulo_get_cor_borda(c));
+  }
+  else if (shape->type == RECTANGLE)
+  {
+    Rectangle r = (Retangulo)shape->data;
+    fprintf(file, "<rect x='%.2f' y='%.2f' width='%.2f' height='%.2f' fill='%s' stroke='%s' stroke-width='1'/>\n",
+            retangulo_get_x(r), retangulo_get_y(r),
+            retangulo_get_largura(r), retangulo_get_altura(r),
+            retangulo_get_cor_preenchimento(r), retangulo_get_cor_borda(r));
+  }
+  else if (shape->type == LINE)
+  {
+    Line l = (Line)shape->data;
+    fprintf(file, "<line x1='%.2f' y1='%.2f' x2='%.2f' y2='%.2f' stroke='%s' stroke-width='1'/>\n",
+            line_get_x1(l), line_get_y1(l), line_get_x2(l), line_get_y2(l),
+            line_get_color(l));
+  }
+  else if (shape->type == TEXT)
+  {
+    Text t = (Text)shape->data;
+    char anchor = text_get_anchor(t);
+    const char *anchorStr = "start";
+    if (anchor == 'm')
+      anchorStr = "middle";
+    if (anchor == 'e' || anchor == 'f')
+      anchorStr = "end";
+
+    fprintf(file, "<text x='%.2f' y='%.2f' fill='%s' stroke='%s' text-anchor='%s'>%s</text>\n",
+            text_get_x(t), text_get_y(t), text_get_fill_color(t),
+            text_get_border_color(t), anchorStr, text_get_text(t));
+  }
+}
+
+// ========================
+// Funções Privadas
+// ========================
+
 static void executar_comando_circulo(Ground_t *ground)
 {
   char *identifier = strtok(NULL, " ");
@@ -133,11 +182,6 @@ static void executar_comando_circulo(Ground_t *ground)
                                   atof(radius), borderColor, fillColor);
 
   Shape_t *shape = malloc(sizeof(Shape_t));
-  if (shape == NULL)
-  {
-    printf("Error: Failed to allocate memory for Shape\n");
-    exit(1);
-  }
   shape->type = CIRCLE;
   shape->data = circulo;
   queue_enqueue(ground->shapesQueue, shape);
@@ -160,11 +204,6 @@ static void execute_rectangle_command(Ground_t *ground)
                       atof(height), borderColor, fillColor);
 
   Shape_t *shape = malloc(sizeof(Shape_t));
-  if (shape == NULL)
-  {
-    printf("Error: Failed to allocate memory for Shape\n");
-    exit(1);
-  }
   shape->type = RECTANGLE;
   shape->data = rectangle;
   queue_enqueue(ground->shapesQueue, shape);
@@ -185,11 +224,6 @@ static void execute_line_command(Ground_t *ground)
                           atof(y2), color);
 
   Shape_t *shape = malloc(sizeof(Shape_t));
-  if (shape == NULL)
-  {
-    printf("Error: Failed to allocate memory for Shape\n");
-    exit(1);
-  }
   shape->type = LINE;
   shape->data = line;
   queue_enqueue(ground->shapesQueue, shape);
@@ -211,11 +245,6 @@ static void execute_text_command(Ground_t *ground)
                               borderColor, fillColor, *anchor, text);
 
   Shape_t *shape = malloc(sizeof(Shape_t));
-  if (shape == NULL)
-  {
-    printf("Error: Failed to allocate memory for Shape\n");
-    exit(1);
-  }
   shape->type = TEXT;
   shape->data = text_obj;
   queue_enqueue(ground->shapesQueue, shape);
@@ -233,11 +262,6 @@ static void execute_text_style_command(Ground_t *ground)
       text_style_create(fontFamily, *fontWeight, atoi(fontSize));
 
   Shape_t *shape = malloc(sizeof(Shape_t));
-  if (shape == NULL)
-  {
-    printf("Error: Failed to allocate memory for Shape\n");
-    exit(1);
-  }
   shape->type = TEXT_STYLE;
   shape->data = text_style_obj;
   queue_enqueue(ground->shapesQueue, shape);
@@ -250,12 +274,7 @@ static void create_svg_queue(Ground_t *ground, const char *output_path,
 {
   const char *original_file_name = getFileName(fileData);
   size_t name_len = strlen(original_file_name);
-  char *file_name = malloc(name_len + 1);
-  if (file_name == NULL)
-  {
-    printf("Error: Memory allocation failed for file name\n");
-    return;
-  }
+  char *file_name = malloc(name_len + 50); // margem extra
   strcpy(file_name, original_file_name);
   if (command_suffix != NULL)
   {
@@ -263,107 +282,30 @@ static void create_svg_queue(Ground_t *ground, const char *output_path,
     strcat(file_name, command_suffix);
   }
 
-  // Calculate required buffer size: output_path + "/" + file_name + ".svg" +
-  // null terminator
   size_t path_len = strlen(output_path);
-  size_t processed_name_len = strlen(file_name);
-  size_t total_len = path_len + 1 + processed_name_len + 4 +
-                     1; // +1 for "/", +4 for ".svg", +1 for null terminator
-
-  // Use dynamic allocation for safety
+  size_t total_len = path_len + strlen(file_name) + 10;
   char *output_path_with_file = malloc(total_len);
-  if (output_path_with_file == NULL)
-  {
-    printf("Error: Memory allocation failed\n");
-    return;
-  }
 
-  // Use snprintf for safe string construction
-  int result = snprintf(output_path_with_file, total_len, "%s/%s.svg",
-                        output_path, file_name);
-  if (result < 0 || (size_t)result >= total_len)
-  {
-    printf("Error: Path construction failed\n");
-    free(output_path_with_file);
-    return;
-  }
+  sprintf(output_path_with_file, "%s/%s.svg", output_path, file_name);
 
   FILE *file = fopen(output_path_with_file, "w");
-  if (file == NULL)
+  if (file != NULL)
   {
-    printf("Error: Failed to open file: %s\n", output_path_with_file);
-    free(output_path_with_file);
-    return;
-  }
-  fprintf(file, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-  fprintf(
-      file,
-      "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1000 1000\">\n");
-  while (!queue_is_empty(ground->svgQueue))
-  {
-    Shape_t *shape = queue_dequeue(ground->svgQueue);
-    if (shape != NULL)
+    fprintf(file, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+    fprintf(file, "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1000 1000\">\n");
+
+    // Desenha formas da fila SVG temporária criada durante parsing
+    while (!queue_is_empty(ground->svgQueue))
     {
-      if (shape->type == CIRCLE)
-      {
-        Circulo circulo = (Circulo)shape->data;
-        fprintf(file,
-                "<circle cx='%.2f' cy='%.2f' r='%.2f' fill='%s' stroke='%s'/>",
-                circulo_get_x(circulo), circulo_get_y(circulo),
-                circulo_get_raio(circulo),
-                circulo_get_cor_preenchimento(circulo),
-                circulo_get_cor_borda(circulo));
-      }
-      else if (shape->type == RECTANGLE)
-      {
-        Rectangle rectangle = (Rectangle)shape->data;
-        fprintf(file,
-                "<rect x='%.2f' y='%.2f' width='%.2f' height='%.2f' fill='%s' "
-                "stroke='%s'/>",
-                retangulo_get_x(rectangle), retangulo_get_y(rectangle),
-                retangulo_get_largura(rectangle),
-                retangulo_get_altura(rectangle),
-                retangulo_get_cor_preenchimento(rectangle),
-                retangulo_get_cor_borda(rectangle));
-      }
-      else if (shape->type == LINE)
-      {
-        Line line = (Line)shape->data;
-        fprintf(file,
-                "<line x1='%.2f' y1='%.2f' x2='%.2f' y2='%.2f' stroke='%s'/>\n",
-                line_get_x1(line), line_get_y1(line), line_get_x2(line),
-                line_get_y2(line), line_get_color(line));
-      }
-      else if (shape->type == TEXT)
-      {
-        Text text = (Text)shape->data;
-        char anchor = text_get_anchor(text);
-        const char *text_anchor = "start"; // default
-
-        // Map anchor character to SVG text-anchor value
-        if (anchor == 'm' || anchor == 'M')
-        {
-          text_anchor = "middle";
-        }
-        else if (anchor == 'e' || anchor == 'E')
-        {
-          text_anchor = "end";
-        }
-        else if (anchor == 's' || anchor == 'S')
-        {
-          text_anchor = "start";
-        }
-
-        fprintf(file,
-                "<text x='%.2f' y='%.2f' fill='%s' stroke='%s' "
-                "text-anchor='%s'>%s</text>\n",
-                text_get_x(text), text_get_y(text), text_get_fill_color(text),
-                text_get_border_color(text), text_anchor, text_get_text(text));
-      }
+      Shape_t *shape = queue_dequeue(ground->svgQueue);
+      if (shape)
+        geo_escrever_svg_forma(shape, file);
     }
+
+    fprintf(file, "</svg>\n");
+    fclose(file);
   }
-  fprintf(file, "</svg>\n");
-  fclose(file);
+
   free(output_path_with_file);
   free(file_name);
 }

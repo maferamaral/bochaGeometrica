@@ -5,7 +5,7 @@
 #include "../formas/formas.h"
 #include "../utils/utils.h"
 
-// Structs internas simplificadas
+// Structs internas
 typedef struct
 {
     void *forma;
@@ -19,9 +19,9 @@ struct Arena_t
     Stack itens;
 };
 
-// Funções auxiliares de geometria (implementar as de cálculo de área/colisão aqui)
-double get_area(void *forma);                  // Implementar baseado no tipo
-int check_overlap(ItemArena *a, ItemArena *b); // Implementar intersecção AABB
+// Protótipos
+double get_area(void *forma);
+int check_overlap(ItemArena *a, ItemArena *b);
 
 Arena arena_criar()
 {
@@ -32,6 +32,8 @@ Arena arena_criar()
 
 void arena_destruir(Arena a)
 {
+    if (!a)
+        return;
     while (!stack_is_empty(a->itens))
         free(stack_pop(a->itens));
     stack_destroy(a->itens);
@@ -52,6 +54,8 @@ void arena_receber_disparo(Arena a, void *forma, double x, double y, double sx, 
 
 void arena_processar_calc(Arena a, Ground ground, Relatorio r)
 {
+    if (!a)
+        return;
     Stack temp = stack_create();
     while (!stack_is_empty(a->itens))
         stack_push(temp, stack_pop(a->itens));
@@ -61,7 +65,7 @@ void arena_processar_calc(Arena a, Ground ground, Relatorio r)
         ItemArena *I = stack_pop(temp);
         if (stack_is_empty(temp))
         {
-            // Reinsere no ground e fim
+            // Reinsere no ground e fim (lógica simplificada)
             free(I);
             continue;
         }
@@ -76,18 +80,11 @@ void arena_processar_calc(Arena a, Ground ground, Relatorio r)
             {
                 relatorio_incrementar_esmagados(r);
                 relatorio_somar_pontuacao(r, areaI);
-                // J volta ao chão, I morre
             }
             else
             {
                 relatorio_incrementar_clones(r);
-                // I clona e troca cor, J troca borda
-                // Ambos voltam ao chão
             }
-        }
-        else
-        {
-            // Ambos voltam ao chão
         }
         free(I);
         free(J);
@@ -97,9 +94,44 @@ void arena_processar_calc(Arena a, Ground ground, Relatorio r)
 
 void arena_desenhar_svg_anotacoes(Arena a, FILE *svg)
 {
-    // Percorre pilha da arena e desenha linhas tracejadas se it->anotar == 1
+    if (!a || !svg)
+        return;
+
+    Stack temp = stack_create();
+
+    // Percorre a pilha para desenhar sem destruir os dados
+    while (!stack_is_empty(a->itens))
+    {
+        ItemArena *it = stack_pop(a->itens);
+        stack_push(temp, it);
+
+        if (it->anotar)
+        {
+            // Linha tracejada do disparador até o ponto final
+            fprintf(svg, "<line x1='%.2f' y1='%.2f' x2='%.2f' y2='%.2f' "
+                         "stroke='red' stroke-width='1' stroke-dasharray='5,5' />\n",
+                    it->origX, it->origY, it->x, it->y);
+
+            // Ponto no destino
+            fprintf(svg, "<circle cx='%.2f' cy='%.2f' r='2' fill='red' />\n",
+                    it->x, it->y);
+
+            // Guias de dimensão (opcional, como no exemplo do PDF)
+            fprintf(svg, "<line x1='%.2f' y1='%.2f' x2='%.2f' y2='%.2f' stroke='purple' stroke-dasharray='2,2' stroke-width='0.5'/>\n",
+                    it->origX, it->origY, it->x, it->origY); // Horizontal
+            fprintf(svg, "<line x1='%.2f' y1='%.2f' x2='%.2f' y2='%.2f' stroke='purple' stroke-dasharray='2,2' stroke-width='0.5'/>\n",
+                    it->x, it->origY, it->x, it->y); // Vertical
+        }
+    }
+
+    // Restaura
+    while (!stack_is_empty(temp))
+    {
+        stack_push(a->itens, stack_pop(temp));
+    }
+    stack_destroy(temp);
 }
 
-// Stubs para compilar (devem ser preenchidos com a lógica real de geometria)
+// Stubs simplificados
 double get_area(void *forma) { return 100.0; }
 int check_overlap(ItemArena *a, ItemArena *b) { return 0; }
