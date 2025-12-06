@@ -1,6 +1,7 @@
 #include "sistema.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h> // Para debug se necessário
 
 typedef struct
 {
@@ -33,6 +34,8 @@ Sistema sistema_criar()
 
 void sistema_destruir(Sistema s)
 {
+    if (!s)
+        return;
     for (int i = 0; i < s->nLoaders; i++)
         stack_destroy(s->loaders[i].formas);
     free(s->loaders);
@@ -94,14 +97,29 @@ void sistema_shft(Sistema s, int idAtirador, const char *lado, int n)
         return;
 
     Loader *src = (strcmp(lado, "e") == 0) ? sh->esq : sh->dir;
-    Loader *dst = (strcmp(lado, "e") == 0) ? sh->dir : sh->esq;
+    Loader *dst = (strcmp(lado, "e") == 0) ? sh->dir : sh->esq; // Oposto
+
+    if (!src)
+        return;
 
     for (int i = 0; i < n; i++)
     {
-        if (src && !stack_is_empty(src->formas))
+        // Se já existe um item pronto, ele deve voltar para o carregador OPOSTO (dst)
+        // para libertar a câmara de disparo
+        if (sh->itemPronto != NULL)
         {
-            if (sh->itemPronto && dst)
+            if (dst)
+            {
                 stack_push(dst->formas, sh->itemPronto);
+            }
+            // Se não houver carregador oposto, o item perde-se ou fica lá?
+            // Assumindo que liberta a posição:
+            sh->itemPronto = NULL;
+        }
+
+        // Agora puxa do carregador selecionado (src) para a posição de disparo
+        if (!stack_is_empty(src->formas))
+        {
             sh->itemPronto = stack_pop(src->formas);
         }
     }
@@ -110,13 +128,16 @@ void sistema_shft(Sistema s, int idAtirador, const char *lado, int n)
 void *sistema_preparar_disparo(Sistema s, int idAtirador, double *xOut, double *yOut)
 {
     Shooter *sh = find_shooter(s, idAtirador);
+
+    // Tenta usar o item que está na "agulha" (itemPronto)
     if (sh && sh->itemPronto)
     {
         *xOut = sh->x;
         *yOut = sh->y;
         void *item = sh->itemPronto;
-        sh->itemPronto = NULL;
+        sh->itemPronto = NULL; // Consumiu o item
         return item;
     }
+
     return NULL;
 }

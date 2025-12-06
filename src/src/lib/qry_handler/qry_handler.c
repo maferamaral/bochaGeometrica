@@ -85,7 +85,6 @@ Qry executar_comandos_qry(FileData qryFile, FileData geoFile, Ground ground, con
       double incX = atof(strtok(NULL, " "));
       double incY = atof(strtok(NULL, " "));
 
-      // CORREÇÃO: Loop inicia em 0 para incluir o disparo inicial dx,dy
       int k = 0;
       while (1)
       {
@@ -96,10 +95,13 @@ Qry executar_comandos_qry(FileData qryFile, FileData geoFile, Ground ground, con
           break;
 
         relatorio_incrementar_disparos(relatorio);
-        // Calcula a posição da rajada
+
         double finalX = sx + dx + (k * incX);
         double finalY = sy + dy + (k * incY);
-        arena_receber_disparo(arena, f, finalX, finalY, sx, sy, 0);
+
+        // CORREÇÃO AQUI: Passar 1 para ativar o desenho da linha vermelha
+        arena_receber_disparo(arena, f, finalX, finalY, sx, sy, 1);
+
         k++;
       }
       relatorio_registrar_comando(relatorio, "rjd", linhaCopy);
