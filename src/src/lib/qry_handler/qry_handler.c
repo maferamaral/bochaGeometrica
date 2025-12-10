@@ -22,8 +22,6 @@ Qry executar_comandos_qry(FileData qryFile, FileData geoFile, Ground ground, con
   while (!queue_is_empty(linhas))
   {
     char *linha = queue_dequeue(linhas);
-    char linhaCopy[256];
-    strcpy(linhaCopy, linha);
     char *cmd = strtok(linha, " \t\n");
     if (!cmd)
       continue;
@@ -36,14 +34,12 @@ Qry executar_comandos_qry(FileData qryFile, FileData geoFile, Ground ground, con
       double x = atof(strtok(NULL, " "));
       double y = atof(strtok(NULL, " "));
       sistema_add_atirador(sistema, id, x, y);
-      relatorio_registrar_comando(relatorio, "pd", linhaCopy);
     }
     else if (strcmp(cmd, "lc") == 0)
     {
       int id = atoi(strtok(NULL, " "));
       int qtd = atoi(strtok(NULL, " "));
       sistema_add_carregador(sistema, id, qtd, ground);
-      relatorio_registrar_comando(relatorio, "lc", linhaCopy);
     }
     else if (strcmp(cmd, "atch") == 0)
     {
@@ -51,7 +47,6 @@ Qry executar_comandos_qry(FileData qryFile, FileData geoFile, Ground ground, con
       int idE = atoi(strtok(NULL, " "));
       int idD = atoi(strtok(NULL, " "));
       sistema_atch(sistema, idA, idE, idD);
-      relatorio_registrar_comando(relatorio, "atch", linhaCopy);
     }
     else if (strcmp(cmd, "shft") == 0)
     {
@@ -59,7 +54,6 @@ Qry executar_comandos_qry(FileData qryFile, FileData geoFile, Ground ground, con
       char *lado = strtok(NULL, " ");
       int n = atoi(strtok(NULL, " "));
       sistema_shft(sistema, id, lado, n);
-      relatorio_registrar_comando(relatorio, "shft", linhaCopy);
     }
     else if (strcmp(cmd, "dsp") == 0)
     {
@@ -74,7 +68,6 @@ Qry executar_comandos_qry(FileData qryFile, FileData geoFile, Ground ground, con
         relatorio_incrementar_disparos(relatorio);
         arena_receber_disparo(arena, forma, sx + dx, sy + dy, sx, sy, (anot && strcmp(anot, "v") == 0));
       }
-      relatorio_registrar_comando(relatorio, "dsp", linhaCopy);
     }
     else if (strcmp(cmd, "rjd") == 0)
     {
@@ -85,6 +78,7 @@ Qry executar_comandos_qry(FileData qryFile, FileData geoFile, Ground ground, con
       double incX = atof(strtok(NULL, " "));
       double incY = atof(strtok(NULL, " "));
 
+      // LOOP COMEÇA EM 0 PARA INCLUIR O PRIMEIRO DISPARO
       int k = 0;
       while (1)
       {
@@ -99,16 +93,14 @@ Qry executar_comandos_qry(FileData qryFile, FileData geoFile, Ground ground, con
         double finalX = sx + dx + (k * incX);
         double finalY = sy + dy + (k * incY);
 
-        // CORREÇÃO AQUI: Passar 1 para ativar o desenho da linha vermelha
+        // FLAG '1' PARA DESENHAR LINHAS VERMELHAS
         arena_receber_disparo(arena, f, finalX, finalY, sx, sy, 1);
         k++;
       }
-      relatorio_registrar_comando(relatorio, "rjd", linhaCopy);
     }
     else if (strcmp(cmd, "calc") == 0)
     {
       arena_processar_calc(arena, ground, relatorio);
-      relatorio_registrar_comando(relatorio, "calc", "");
     }
     free(linha);
   }
