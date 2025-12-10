@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h> // Necessário para sqrt e pow
+#include <math.h>
 #include "../fila/fila.h"
 #include "../pilha/pilha.h"
 #include "../manipuladorDeArquivo/manipuladorDeArquivo.h"
@@ -27,6 +27,28 @@ typedef struct
   void *data;
 } Shape_t;
 
+// Definições das estruturas internas para acesso em geo_aplicar_efeitos_clonagem
+struct Circulo
+{
+  int id;
+  double x;
+  double y;
+  double radius;
+  char *border_color;
+  char *fill_color;
+};
+
+struct Retangulo
+{
+  int id;
+  double x;
+  double y;
+  double width;
+  double height;
+  char *border_color;
+  char *fill_color;
+};
+
 // Declarações privadas
 static void executar_comando_circulo(Ground_t *g);
 static void execute_rectangle_command(Ground_t *g);
@@ -36,7 +58,7 @@ static void execute_text_style_command(Ground_t *g);
 static void create_svg_queue(Ground_t *g, const char *path, FileData fd, const char *suf);
 
 // ==========================================
-// IMPLEMENTAÇÃO DOS CÁLCULOS REAIS
+// FUNÇÕES DE CÁLCULO
 // ==========================================
 
 double geo_obter_area(void *shape_ptr)
@@ -44,25 +66,18 @@ double geo_obter_area(void *shape_ptr)
   Shape_t *shape = (Shape_t *)shape_ptr;
   if (!shape)
     return 0.0;
-
   if (shape->type == CIRCLE)
   {
-    Circulo c = (Circulo)shape->data;
-    double r = circulo_get_raio(c);
-    return 3.14159265359 * r * r;
+    return 3.14159265359 * pow(circulo_get_raio(shape->data), 2);
   }
   else if (shape->type == RECTANGLE)
   {
-    Rectangle r = (Retangulo)shape->data;
-    return retangulo_get_largura(r) * retangulo_get_altura(r);
+    return retangulo_get_largura(shape->data) * retangulo_get_altura(shape->data);
   }
-  // Texto: Área aproximada (segundo especificação comum: 20 * len)
   else if (shape->type == TEXT)
   {
-    Text t = (Text)shape->data;
-    return 20.0 * text_get_length(t);
+    return 20.0 * text_get_length(shape->data);
   }
-  // Linha: Comprimento * 2 (espessura)
   else if (shape->type == LINE)
   {
     Line l = (Line)shape->data;
@@ -71,27 +86,20 @@ double geo_obter_area(void *shape_ptr)
   return 0.0;
 }
 
-// Auxiliares de Colisão
 static double max(double a, double b) { return a > b ? a : b; }
 static double min(double a, double b) { return a < b ? a : b; }
 
-static int rect_rect_overlap(double x1, double y1, double w1, double h1,
-                             double x2, double y2, double w2, double h2)
+static int rect_rect_overlap(double x1, double y1, double w1, double h1, double x2, double y2, double w2, double h2)
 {
-  return (x1 < x2 + w2 && x1 + w1 > x2 &&
-          y1 < y2 + h2 && y1 + h1 > y2);
+  return (x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2);
 }
-
-static int circ_circ_overlap(double x1, double y1, double r1,
-                             double x2, double y2, double r2)
+static int circ_circ_overlap(double x1, double y1, double r1, double x2, double y2, double r2)
 {
   double distSq = pow(x1 - x2, 2) + pow(y1 - y2, 2);
   double radSum = r1 + r2;
   return distSq <= (radSum * radSum);
 }
-
-static int circ_rect_overlap(double cx, double cy, double r,
-                             double rx, double ry, double rw, double rh)
+static int circ_rect_overlap(double cx, double cy, double r, double rx, double ry, double rw, double rh)
 {
   double closestX = max(rx, min(cx, rx + rw));
   double closestY = max(ry, min(cy, ry + rh));
@@ -107,23 +115,16 @@ int geo_verificar_sobreposicao(void *shapeA_ptr, void *shapeB_ptr)
   if (!A || !B)
     return 0;
 
-  // Círculo vs Círculo
   if (A->type == CIRCLE && B->type == CIRCLE)
   {
-    Circulo c1 = (Circulo)A->data;
-    Circulo c2 = (Circulo)B->data;
-    return circ_circ_overlap(circulo_get_x(c1), circulo_get_y(c1), circulo_get_raio(c1),
-                             circulo_get_x(c2), circulo_get_y(c2), circulo_get_raio(c2));
+    return circ_circ_overlap(circulo_get_x(A->data), circulo_get_y(A->data), circulo_get_raio(A->data),
+                             circulo_get_x(B->data), circulo_get_y(B->data), circulo_get_raio(B->data));
   }
-  // Retângulo vs Retângulo
   else if (A->type == RECTANGLE && B->type == RECTANGLE)
   {
-    Rectangle r1 = (Retangulo)A->data;
-    Rectangle r2 = (Retangulo)B->data;
-    return rect_rect_overlap(retangulo_get_x(r1), retangulo_get_y(r1), retangulo_get_largura(r1), retangulo_get_altura(r1),
-                             retangulo_get_x(r2), retangulo_get_y(r2), retangulo_get_largura(r2), retangulo_get_altura(r2));
+    return rect_rect_overlap(retangulo_get_x(A->data), retangulo_get_y(A->data), retangulo_get_largura(A->data), retangulo_get_altura(A->data),
+                             retangulo_get_x(B->data), retangulo_get_y(B->data), retangulo_get_largura(B->data), retangulo_get_altura(B->data));
   }
-  // Misto: Círculo vs Retângulo
   else if ((A->type == CIRCLE && B->type == RECTANGLE) || (A->type == RECTANGLE && B->type == CIRCLE))
   {
     Circulo c = (A->type == CIRCLE) ? (Circulo)A->data : (Circulo)B->data;
@@ -144,16 +145,17 @@ void geo_escrever_svg_forma(void *shape_ptr, FILE *file)
   if (!shape || !file)
     return;
 
+  // Adicionada transparência (fill-opacity) para ficar igual ao gabarito
   if (shape->type == CIRCLE)
   {
     Circulo c = (Circulo)shape->data;
-    fprintf(file, "<circle cx='%.2f' cy='%.2f' r='%.2f' fill='%s' stroke='%s' stroke-width='1'/>\n",
+    fprintf(file, "<circle cx='%.2f' cy='%.2f' r='%.2f' fill='%s' stroke='%s' stroke-width='1' fill-opacity='0.7'/>\n",
             circulo_get_x(c), circulo_get_y(c), circulo_get_raio(c), circulo_get_cor_preenchimento(c), circulo_get_cor_borda(c));
   }
   else if (shape->type == RECTANGLE)
   {
     Rectangle r = (Retangulo)shape->data;
-    fprintf(file, "<rect x='%.2f' y='%.2f' width='%.2f' height='%.2f' fill='%s' stroke='%s' stroke-width='1'/>\n",
+    fprintf(file, "<rect x='%.2f' y='%.2f' width='%.2f' height='%.2f' fill='%s' stroke='%s' stroke-width='1' fill-opacity='0.7'/>\n",
             retangulo_get_x(r), retangulo_get_y(r), retangulo_get_largura(r), retangulo_get_altura(r),
             retangulo_get_cor_preenchimento(r), retangulo_get_cor_borda(r));
   }
@@ -179,7 +181,6 @@ void *geo_clonar_forma(void *shape_ptr, double x, double y, Ground ground)
   Shape_t *src = (Shape_t *)shape_ptr;
   if (!src)
     return NULL;
-
   void *newData = NULL;
   if (src->type == CIRCLE)
   {
@@ -202,7 +203,6 @@ void *geo_clonar_forma(void *shape_ptr, double x, double y, Ground ground)
     Text t = (Text)src->data;
     newData = text_create(text_get_id(t), x, y, text_get_border_color(t), text_get_fill_color(t), text_get_anchor(t), text_get_text(t));
   }
-
   if (newData)
   {
     Shape_t *newShape = malloc(sizeof(Shape_t));
@@ -219,10 +219,7 @@ void *geo_clonar_forma(void *shape_ptr, double x, double y, Ground ground)
   return NULL;
 }
 
-// ==========================================
-// FUNÇÕES DE PARSING E SETUP
-// ==========================================
-
+// ... (Funções de parsing execute_geo_commands, etc. mantêm-se iguais às originais) ...
 Ground execute_geo_commands(FileData fileData, const char *output_path, const char *command_suffix)
 {
   Ground_t *ground = malloc(sizeof(Ground_t));
@@ -231,21 +228,18 @@ Ground execute_geo_commands(FileData fileData, const char *output_path, const ch
   ground->shapesQueue = queue_create();
   ground->shapesStackToFree = stack_create();
   ground->svgQueue = queue_create();
-
   Queue lines = getLinesQueue(fileData);
   if (!lines)
   {
     free(ground);
     return NULL;
   }
-
   while (!queue_is_empty(lines))
   {
     char *line = (char *)queue_dequeue(lines);
     char *command = strtok(line, " ");
     if (!command)
       continue;
-
     if (strcmp(command, "c") == 0)
       executar_comando_circulo(ground);
     else if (strcmp(command, "r") == 0)
@@ -260,7 +254,6 @@ Ground execute_geo_commands(FileData fileData, const char *output_path, const ch
   create_svg_queue(ground, output_path, fileData, command_suffix);
   return ground;
 }
-
 void destroy_geo_waste(Ground ground)
 {
   if (!ground)
@@ -273,10 +266,8 @@ void destroy_geo_waste(Ground ground)
   stack_destroy(gt->shapesStackToFree);
   free(ground);
 }
-
 Queue get_ground_queue(Ground ground) { return ground ? ((Ground_t *)ground)->shapesQueue : NULL; }
 Stack get_ground_shapes_stack_to_free(Ground ground) { return ground ? ((Ground_t *)ground)->shapesStackToFree : NULL; }
-
 static void executar_comando_circulo(Ground_t *g)
 {
   char *id = strtok(NULL, " "), *x = strtok(NULL, " "), *y = strtok(NULL, " "), *r = strtok(NULL, " "), *cb = strtok(NULL, " "), *cp = strtok(NULL, " ");
@@ -355,14 +346,12 @@ static void create_svg_queue(Ground_t *g, const char *path, FileData fd, const c
   free(out);
 }
 
-// [NOVO] Implementação da função de impressão detalhada
+// [NOVO] Implementação da função que escreve o texto detalhado
 void geo_imprimir_forma_txt(void *shape_ptr, FILE *txt)
 {
   if (!shape_ptr || !txt)
     return;
-
   Shape_t *shape = (Shape_t *)shape_ptr;
-
   if (shape->type == CIRCLE)
   {
     Circulo c = (Circulo)shape->data;
@@ -391,5 +380,60 @@ void geo_imprimir_forma_txt(void *shape_ptr, FILE *txt)
     fprintf(txt, "Texto ID:%d (x:%.2f, y:%.2f) ancora:%c conteudo:\"%s\"\n",
             text_get_id(t), text_get_x(t), text_get_y(t),
             text_get_anchor(t), text_get_text(t));
+  }
+}
+
+// [NOVO] Implementação da troca de cores (hack acessando structs internas)
+// Necessário para o efeito de "mistura" na clonagem
+void geo_aplicar_efeitos_clonagem(void *I_ptr, void *J_ptr, void *I_clone_ptr)
+{
+  if (!I_ptr || !J_ptr || !I_clone_ptr)
+    return;
+
+  Shape_t *I = (Shape_t *)I_ptr;
+  Shape_t *J = (Shape_t *)J_ptr;
+  Shape_t *Ic = (Shape_t *)I_clone_ptr;
+
+  // Precisamos acessar as structs internas (definidas acima neste arquivo)
+  char *fill_I = NULL;
+
+  if (I->type == RECTANGLE)
+    fill_I = ((struct Retangulo *)I->data)->fill_color;
+  else if (I->type == CIRCLE)
+    fill_I = ((struct Circulo *)I->data)->fill_color;
+
+  // 1. I muda a cor da borda de J para ser a cor de preenchimento de I
+  if (fill_I)
+  {
+    if (J->type == RECTANGLE)
+    {
+      struct Retangulo *rJ = (struct Retangulo *)J->data;
+      if (rJ->border_color)
+        free(rJ->border_color);
+      rJ->border_color = duplicate_string(fill_I);
+    }
+    else if (J->type == CIRCLE)
+    {
+      struct Circulo *cJ = (struct Circulo *)J->data;
+      if (cJ->border_color)
+        free(cJ->border_color);
+      cJ->border_color = duplicate_string(fill_I);
+    }
+  }
+
+  // 2. Clone de I inverte borda e preenchimento
+  if (Ic->type == RECTANGLE)
+  {
+    struct Retangulo *rIc = (struct Retangulo *)Ic->data;
+    char *temp = rIc->fill_color;
+    rIc->fill_color = rIc->border_color;
+    rIc->border_color = temp;
+  }
+  else if (Ic->type == CIRCLE)
+  {
+    struct Circulo *cIc = (struct Circulo *)Ic->data;
+    char *temp = cIc->fill_color;
+    cIc->fill_color = cIc->border_color;
+    cIc->border_color = temp;
   }
 }

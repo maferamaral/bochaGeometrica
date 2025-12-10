@@ -14,7 +14,7 @@ Qry executar_comandos_qry(FileData qryFile, FileData geoFile, Ground ground, con
   char *qryName = getFileName(qryFile);
 
   Relatorio relatorio = relatorio_criar(geoName, qryName, outPath);
-  FILE *txt = relatorio_get_txt(relatorio); // Obtem ponteiro para escrever no TXT
+  FILE *txt = relatorio_get_txt(relatorio); // Ponteiro para o arquivo TXT
 
   Sistema sistema = sistema_criar();
   Arena arena = arena_criar();
@@ -26,7 +26,7 @@ Qry executar_comandos_qry(FileData qryFile, FileData geoFile, Ground ground, con
   {
     char *linha = queue_dequeue(linhas);
 
-    // Reporta o comando lido no TXT
+    // ESCREVE O COMANDO NO TXT
     if (txt)
       fprintf(txt, "\n[*] %s\n", linha);
 
@@ -80,22 +80,18 @@ Qry executar_comandos_qry(FileData qryFile, FileData geoFile, Ground ground, con
       {
         relatorio_incrementar_disparos(relatorio);
 
-        // Reporta dados no TXT
+        // REPORTA NO TXT
         if (txt)
           fprintf(txt, "-> Disparo realizado. Dados da forma:\n");
         geo_imprimir_forma_txt(forma, txt);
         if (txt)
           fprintf(txt, "   Posicao Final: (%.2f, %.2f)\n", sx + dx, sy + dy);
 
-        // Apenas anota no SVG se o parâmetro for 'v'
         int anotar = (anot && strcmp(anot, "v") == 0);
         arena_receber_disparo(arena, forma, sx + dx, sy + dy, sx, sy, anotar);
       }
-      else
-      {
-        if (txt)
-          fprintf(txt, "-> Falha no disparo: sem municao.\n");
-      }
+      else if (txt)
+        fprintf(txt, "-> Falha no disparo: sem municao.\n");
     }
     else if (strcmp(cmd, "rjd") == 0)
     {
@@ -112,25 +108,21 @@ Qry executar_comandos_qry(FileData qryFile, FileData geoFile, Ground ground, con
       int k = 0;
       while (1)
       {
-        // 1. Puxa munição (shift 1)
         sistema_shft(sistema, id, lado, 1);
-
-        // 2. Prepara disparo
         double sx, sy;
         void *f = sistema_preparar_disparo(sistema, id, &sx, &sy);
         if (!f)
-          break; // Acabou a munição
+          break;
 
         relatorio_incrementar_disparos(relatorio);
-
         double finalX = sx + dx + (k * incX);
         double finalY = sy + dy + (k * incY);
 
-        // Reporta cada item da rajada no TXT
-        geo_imprimir_forma_txt(f, txt);
+        if (txt)
+          geo_imprimir_forma_txt(f, txt);
 
-        // Adiciona na arena com anotação DESLIGADA (0) para não poluir o SVG
-        arena_receber_disparo(arena, f, finalX, finalY, sx, sy, 0);
+        // Flag 1 para desenhar a linha vermelha da rajada no SVG
+        arena_receber_disparo(arena, f, finalX, finalY, sx, sy, 1);
         k++;
       }
       if (txt)
