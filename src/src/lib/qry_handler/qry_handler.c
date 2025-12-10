@@ -6,6 +6,7 @@
 #include "../sistema/sistema.h"
 #include "../arena/arena.h"
 #include "../manipuladorDeArquivo/manipuladorDeArquivo.h"
+#include "../geo_handler/geo_handler.h"
 
 Qry executar_comandos_qry(FileData qryFile, FileData geoFile, Ground ground, const char *outPath)
 {
@@ -13,6 +14,8 @@ Qry executar_comandos_qry(FileData qryFile, FileData geoFile, Ground ground, con
   char *qryName = getFileName(qryFile);
 
   Relatorio relatorio = relatorio_criar(geoName, qryName, outPath);
+  FILE *txt = relatorio_get_txt(relatorio); // Obtem ponteiro para escrever no TXT
+
   Sistema sistema = sistema_criar();
   Arena arena = arena_criar();
 
@@ -22,9 +25,17 @@ Qry executar_comandos_qry(FileData qryFile, FileData geoFile, Ground ground, con
   while (!queue_is_empty(linhas))
   {
     char *linha = queue_dequeue(linhas);
+
+    // Reporta o comando lido no TXT
+    if (txt)
+      fprintf(txt, "\n[*] %s\n", linha);
+
     char *cmd = strtok(linha, " \t\n");
     if (!cmd)
+    {
+      free(linha);
       continue;
+    }
 
     qtdCmds++;
 
@@ -61,12 +72,29 @@ Qry executar_comandos_qry(FileData qryFile, FileData geoFile, Ground ground, con
       double dx = atof(strtok(NULL, " "));
       double dy = atof(strtok(NULL, " "));
       char *anot = strtok(NULL, " ");
+
       double sx, sy;
       void *forma = sistema_preparar_disparo(sistema, id, &sx, &sy);
+
       if (forma)
       {
         relatorio_incrementar_disparos(relatorio);
-        arena_receber_disparo(arena, forma, sx + dx, sy + dy, sx, sy, (anot && strcmp(anot, "v") == 0));
+
+        // Reporta dados no TXT
+        if (txt)
+          fprintf(txt, "-> Disparo realizado. Dados da forma:\n");
+        geo_imprimir_forma_txt(forma, txt);
+        if (txt)
+          fprintf(txt, "   Posicao Final: (%.2f, %.2f)\n", sx + dx, sy + dy);
+
+        // Apenas anota no SVG se o parâmetro for 'v'
+        int anotar = (anot && strcmp(anot, "v") == 0);
+        arena_receber_disparo(arena, forma, sx + dx, sy + dy, sx, sy, anotar);
+      }
+      else
+      {
+        if (txt)
+          fprintf(txt, "-> Falha no disparo: sem municao.\n");
       }
     }
     else if (strcmp(cmd, "rjd") == 0)
@@ -78,25 +106,35 @@ Qry executar_comandos_qry(FileData qryFile, FileData geoFile, Ground ground, con
       double incX = atof(strtok(NULL, " "));
       double incY = atof(strtok(NULL, " "));
 
-      // LOOP COMEÇA EM 0 PARA INCLUIR O PRIMEIRO DISPARO
+      if (txt)
+        fprintf(txt, "-> Rajada iniciada (Disp: %d, Lado: %s):\n", id, lado);
+
       int k = 0;
       while (1)
       {
+        // 1. Puxa munição (shift 1)
         sistema_shft(sistema, id, lado, 1);
+
+        // 2. Prepara disparo
         double sx, sy;
         void *f = sistema_preparar_disparo(sistema, id, &sx, &sy);
         if (!f)
-          break;
+          break; // Acabou a munição
 
         relatorio_incrementar_disparos(relatorio);
 
         double finalX = sx + dx + (k * incX);
         double finalY = sy + dy + (k * incY);
 
-        // FLAG '1' PARA DESENHAR LINHAS VERMELHAS
-        arena_receber_disparo(arena, f, finalX, finalY, sx, sy, 1);
+        // Reporta cada item da rajada no TXT
+        geo_imprimir_forma_txt(f, txt);
+
+        // Adiciona na arena com anotação DESLIGADA (0) para não poluir o SVG
+        arena_receber_disparo(arena, f, finalX, finalY, sx, sy, 0);
         k++;
       }
+      if (txt)
+        fprintf(txt, "-> Fim da Rajada. Total: %d formas.\n", k);
     }
     else if (strcmp(cmd, "calc") == 0)
     {

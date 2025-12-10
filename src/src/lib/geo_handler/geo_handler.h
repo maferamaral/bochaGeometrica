@@ -26,4 +26,7 @@ void *geo_clonar_forma(void *shape, double x, double y, Ground ground);
 double geo_obter_area(void *shape);
 int geo_verificar_sobreposicao(void *shapeA, void *shapeB);
 
+// [NOVO] Escreve os dados detalhados da forma no arquivo .txt
+void geo_imprimir_forma_txt(void *shape, FILE *txt);
+
 #endif // GEO_HANDLER_H

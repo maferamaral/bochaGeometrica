@@ -131,13 +131,11 @@ int geo_verificar_sobreposicao(void *shapeA_ptr, void *shapeB_ptr)
     return circ_rect_overlap(circulo_get_x(c), circulo_get_y(c), circulo_get_raio(c),
                              retangulo_get_x(r), retangulo_get_y(r), retangulo_get_largura(r), retangulo_get_altura(r));
   }
-  // Simplificação: Assumimos que outros tipos (Line/Text) não colidem ou colidem apenas por AABB
-  // Se precisar de colisão para Texto/Linha, converta-os para AABB (Retângulo) e chame rect_rect_overlap.
   return 0;
 }
 
 // ==========================================
-// FUNÇÕES DE DESENHO E CLONAGEM (JÁ EXISTENTES)
+// FUNÇÕES DE DESENHO E CLONAGEM
 // ==========================================
 
 void geo_escrever_svg_forma(void *shape_ptr, FILE *file)
@@ -355,4 +353,43 @@ static void create_svg_queue(Ground_t *g, const char *path, FileData fd, const c
   }
   free(fname);
   free(out);
+}
+
+// [NOVO] Implementação da função de impressão detalhada
+void geo_imprimir_forma_txt(void *shape_ptr, FILE *txt)
+{
+  if (!shape_ptr || !txt)
+    return;
+
+  Shape_t *shape = (Shape_t *)shape_ptr;
+
+  if (shape->type == CIRCLE)
+  {
+    Circulo c = (Circulo)shape->data;
+    fprintf(txt, "Circulo ID:%d (x:%.2f, y:%.2f) r:%.2f corb:%s corp:%s\n",
+            circulo_get_id(c), circulo_get_x(c), circulo_get_y(c),
+            circulo_get_raio(c), circulo_get_cor_borda(c), circulo_get_cor_preenchimento(c));
+  }
+  else if (shape->type == RECTANGLE)
+  {
+    Rectangle r = (Retangulo)shape->data;
+    fprintf(txt, "Retangulo ID:%d (x:%.2f, y:%.2f) w:%.2f h:%.2f corb:%s corp:%s\n",
+            retangulo_get_id(r), retangulo_get_x(r), retangulo_get_y(r),
+            retangulo_get_largura(r), retangulo_get_altura(r),
+            retangulo_get_cor_borda(r), retangulo_get_cor_preenchimento(r));
+  }
+  else if (shape->type == LINE)
+  {
+    Line l = (Line)shape->data;
+    fprintf(txt, "Linha ID:%d (x1:%.2f, y1:%.2f) (x2:%.2f, y2:%.2f) cor:%s\n",
+            line_get_id(l), line_get_x1(l), line_get_y1(l),
+            line_get_x2(l), line_get_y2(l), line_get_color(l));
+  }
+  else if (shape->type == TEXT)
+  {
+    Text t = (Text)shape->data;
+    fprintf(txt, "Texto ID:%d (x:%.2f, y:%.2f) ancora:%c conteudo:\"%s\"\n",
+            text_get_id(t), text_get_x(t), text_get_y(t),
+            text_get_anchor(t), text_get_text(t));
+  }
 }
