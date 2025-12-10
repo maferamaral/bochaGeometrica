@@ -1,8 +1,0 @@
-pd 10 300 300
-lc 1 2
-atch 10 1 1
-shft 10 e 1
-dsp 10 0 0 i
-shft 10 e 1
-dsp 10 0 0 i
-calc

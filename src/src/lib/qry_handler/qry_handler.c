@@ -81,17 +81,17 @@ Qry executar_comandos_qry(FileData qryFile, FileData geoFile, Ground ground, con
         relatorio_incrementar_disparos(relatorio);
 
         // REPORTA NO TXT
-        if (txt)
-          fprintf(txt, "-> Disparo realizado. Dados da forma:\n");
-        geo_imprimir_forma_txt(forma, txt);
-        if (txt)
-          fprintf(txt, "   Posicao Final: (%.2f, %.2f)\n", sx + dx, sy + dy);
+        if (txt) {
+            double origX = geo_get_shape_x(forma);
+            double origY = geo_get_shape_y(forma);
+            geo_atualizar_posicao(forma, sx + dx, sy + dy);
+            geo_imprimir_forma_txt(forma, txt);
+            fprintf(txt, "pos_inicial: (%.2f,%.2f)\npos_final: (%.2f,%.2f)\n", origX, origY, sx+dx, sy+dy);
+        }
 
         int anotar = (anot && strcmp(anot, "v") == 0);
         arena_receber_disparo(arena, forma, sx + dx, sy + dy, sx, sy, anotar);
       }
-      else if (txt)
-        fprintf(txt, "-> Falha no disparo: sem municao.\n");
     }
     else if (strcmp(cmd, "rjd") == 0)
     {
@@ -101,9 +101,6 @@ Qry executar_comandos_qry(FileData qryFile, FileData geoFile, Ground ground, con
       double dy = atof(strtok(NULL, " "));
       double incX = atof(strtok(NULL, " "));
       double incY = atof(strtok(NULL, " "));
-
-      if (txt)
-        fprintf(txt, "-> Rajada iniciada (Disp: %d, Lado: %s):\n", id, lado);
 
       int k = 0;
       while (1)
@@ -118,15 +115,18 @@ Qry executar_comandos_qry(FileData qryFile, FileData geoFile, Ground ground, con
         double finalX = sx + dx + (k * incX);
         double finalY = sy + dy + (k * incY);
 
-        if (txt)
-          geo_imprimir_forma_txt(f, txt);
+        if (txt) {
+            double origX = geo_get_shape_x(f);
+            double origY = geo_get_shape_y(f);
+            geo_atualizar_posicao(f, finalX, finalY);
+            geo_imprimir_forma_txt(f, txt);
+            fprintf(txt, "pos_inicial: (%.2f,%.2f)\npos_final: (%.2f,%.2f)\n", origX, origY, finalX, finalY);
+        }
 
         // Flag 1 para desenhar a linha vermelha da rajada no SVG
         arena_receber_disparo(arena, f, finalX, finalY, sx, sy, 1);
         k++;
       }
-      if (txt)
-        fprintf(txt, "-> Fim da Rajada. Total: %d formas.\n", k);
     }
     else if (strcmp(cmd, "calc") == 0)
     {

@@ -1,6 +1,8 @@
 #include "relatorio.h"
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
+#include <float.h>
 #include "../pilha/pilha.h"
 #include "../fila/fila.h"
 #include "../arena/arena.h"
@@ -94,11 +96,11 @@ void relatorio_escrever_final(Relatorio r, int qtdComandos)
     if (!r || !r->txtFile)
         return;
     fprintf(r->txtFile, "\n=== RELATÓRIO FINAL ===\n");
-    fprintf(r->txtFile, "Pontuação final: %.2lf\n", r->pontuacao);
-    fprintf(r->txtFile, "Instruções executadas: %d\n", qtdComandos);
-    fprintf(r->txtFile, "Total de disparos: %d\n", r->totalDisparos);
-    fprintf(r->txtFile, "Formas clonadas: %d\n", r->totalClones);
-    fprintf(r->txtFile, "Formas esmagadas: %d\n", r->totalEsmagados);
+    fprintf(r->txtFile, "Pontuação total: %.2lf\n", r->pontuacao);
+    fprintf(r->txtFile, "Instruções: %d\n", qtdComandos);
+    fprintf(r->txtFile, "Disparos: %d\n", r->totalDisparos);
+    fprintf(r->txtFile, "Esmagadas: %d\n", r->totalEsmagados);
+    fprintf(r->txtFile, "Clones: %d\n", r->totalClones);
 }
 
 void relatorio_gerar_svg(Relatorio r, Ground ground, void *arena_ptr)
@@ -106,24 +108,59 @@ void relatorio_gerar_svg(Relatorio r, Ground ground, void *arena_ptr)
     if (!r || !r->svgPath)
         return;
 
+    // 0. Calc BBox
+    double minX = DBL_MAX, minY = DBL_MAX, maxX = -DBL_MAX, maxY = -DBL_MAX;
+    int temAlgo = 0;
+
+    Queue q = get_ground_queue(ground);
+    Queue temp = queue_create();
+    while (!queue_is_empty(q))
+    {
+        void *s = queue_dequeue(q);
+        geo_get_bbox(s, &minX, &minY, &maxX, &maxY);
+        temAlgo = 1;
+        queue_enqueue(temp, s);
+    }
+    while (!queue_is_empty(temp))
+        queue_enqueue(q, queue_dequeue(temp));
+    queue_destroy(temp);
+
+    if (arena_ptr)
+    {
+        arena_get_bbox((Arena)arena_ptr, &minX, &minY, &maxX, &maxY);
+    }
+
+    if (maxX > -DBL_MAX) temAlgo = 1; else temAlgo = 0;
+
+    double margin = 20.0;
+    double width = 500.0, height = 500.0;
+    double tx = 0.0, ty = 0.0;
+
+    if (temAlgo)
+    {
+        width = (maxX - minX) + 2 * margin;
+        height = (maxY - minY) + 2 * margin;
+        tx = margin - minX;
+        ty = margin - minY;
+    }
+
     FILE *svg = fopen(r->svgPath, "w");
     if (!svg)
         return;
 
-    fprintf(svg, "<?xml version=\"1.0\"?>\n<svg xmlns=\"http://www.w3.org/2000/svg\">\n");
+    fprintf(svg, "<?xml version=\"1.0\"?>\n<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"%.2f\" height=\"%.2f\">\n", width, height);
+
+    if (temAlgo)
+        fprintf(svg, "<g transform=\"translate(%.2f, %.2f)\">\n", tx, ty);
 
     // 1. Desenha as formas do chão
-    Queue q = get_ground_queue(ground);
-    Queue temp = queue_create();
-
+    temp = queue_create();
     while (!queue_is_empty(q))
     {
         void *s = queue_dequeue(q);
-        // Desenha a forma usando a função do geo_handler
         geo_escrever_svg_forma(s, svg);
         queue_enqueue(temp, s);
     }
-    // Restaura
     while (!queue_is_empty(temp))
         queue_enqueue(q, queue_dequeue(temp));
     queue_destroy(temp);
@@ -133,6 +170,9 @@ void relatorio_gerar_svg(Relatorio r, Ground ground, void *arena_ptr)
     {
         arena_desenhar_svg_anotacoes(arena_ptr, svg);
     }
+
+    if (temAlgo)
+        fprintf(svg, "</g>\n");
 
     fprintf(svg, "</svg>");
     fclose(svg);
@@ -150,3 +190,5 @@ void relatorio_destruir(Relatorio r)
 }
 
 FILE *relatorio_get_txt(Relatorio r) { return r ? r->txtFile : NULL; }
+
+double relatorio_get_pontuacao(Relatorio r) { return r ? r->pontuacao : 0.0; }

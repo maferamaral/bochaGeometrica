@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
   }
 
   // Preparar caminhos completos com prefixo se existir
-  char *fullGeoPath = geoPath;
+  char *fullGeoPath = (char *)geoPath;
   if (prefixPath != NULL)
   {
     size_t prefixLen = strlen(prefixPath);
@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
 
   if (qryPath != NULL)
   {
-    char *fullQryPath = qryPath;
+    char *fullQryPath = (char *)qryPath;
     if (prefixPath != NULL)
     {
       size_t prefixLen = strlen(prefixPath);

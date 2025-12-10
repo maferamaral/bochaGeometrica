@@ -12,8 +12,8 @@ typedef struct
 {
     int id;
     double x, y;
-    Loader *esq;
-    Loader *dir;
+    int idEsq;
+    int idDir;
     void *itemPronto;
 } Shooter;
 
@@ -44,7 +44,7 @@ void sistema_destruir(Sistema s)
 void sistema_add_atirador(Sistema s, int id, double x, double y)
 {
     s->shooters = realloc(s->shooters, (s->nShooters + 1) * sizeof(Shooter));
-    s->shooters[s->nShooters++] = (Shooter){id, x, y, NULL, NULL, NULL};
+    s->shooters[s->nShooters++] = (Shooter){id, x, y, -1, -1, NULL};
 }
 
 void sistema_add_carregador(Sistema s, int id, int numFormas, Ground ground)
@@ -64,6 +64,7 @@ void sistema_add_carregador(Sistema s, int id, int numFormas, Ground ground)
 
 static Loader *find_loader(Sistema s, int id)
 {
+    if (id == -1) return NULL;
     for (int i = 0; i < s->nLoaders; i++)
         if (s->loaders[i].id == id)
             return &s->loaders[i];
@@ -83,8 +84,8 @@ void sistema_atch(Sistema s, int idAtirador, int idEsq, int idDir)
     Shooter *sh = find_shooter(s, idAtirador);
     if (sh)
     {
-        sh->esq = find_loader(s, idEsq);
-        sh->dir = find_loader(s, idDir);
+        sh->idEsq = idEsq;
+        sh->idDir = idDir;
     }
 }
 
@@ -94,8 +95,11 @@ void sistema_shft(Sistema s, int idAtirador, const char *lado, int n)
     if (!sh)
         return;
 
-    Loader *src = (strcmp(lado, "e") == 0) ? sh->esq : sh->dir;
-    Loader *dst = (strcmp(lado, "e") == 0) ? sh->dir : sh->esq;
+    int idSrc = (strcmp(lado, "e") == 0) ? sh->idDir : sh->idEsq;
+    int idDst = (strcmp(lado, "e") == 0) ? sh->idEsq : sh->idDir;
+    
+    Loader *src = find_loader(s, idSrc);
+    Loader *dst = find_loader(s, idDst);
 
     if (!src)
         return;

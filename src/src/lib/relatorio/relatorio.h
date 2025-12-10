@@ -15,5 +15,6 @@ void relatorio_escrever_final(Relatorio r, int qtdComandos);
 void relatorio_gerar_svg(Relatorio r, Ground ground, void *arena_ptr);
 void relatorio_destruir(Relatorio r);
 FILE *relatorio_get_txt(Relatorio r);
+double relatorio_get_pontuacao(Relatorio r);
 
 #endif

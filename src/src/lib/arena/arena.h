@@ -11,5 +11,6 @@ void arena_destruir(Arena a);
 void arena_receber_disparo(Arena a, void *forma, double x, double y, double shooterX, double shooterY, int anotar);
 void arena_processar_calc(Arena a, Ground ground, Relatorio r);
 void arena_desenhar_svg_anotacoes(Arena a, FILE *svg);
+void arena_get_bbox(Arena a, double *minX, double *minY, double *maxX, double *maxY);
 
 #endif
