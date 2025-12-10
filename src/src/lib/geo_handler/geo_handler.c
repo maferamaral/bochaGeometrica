@@ -1,16 +1,17 @@
 #include "geo_handler.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h> // Necessário para sqrt e pow
 #include "../fila/fila.h"
+#include "../pilha/pilha.h"
+#include "../manipuladorDeArquivo/manipuladorDeArquivo.h"
 #include "../formas/circulo/circulo.h"
 #include "../formas/formas.h"
 #include "../formas/linha/linha.h"
 #include "../formas/retangulo/retangulo.h"
 #include "../formas/text_style/text_style.h"
 #include "../formas/texto/texto.h"
-#include "../manipuladorDeArquivo/manipuladorDeArquivo.h"
-#include "../pilha/pilha.h"
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 
 typedef struct
 {
@@ -25,68 +26,102 @@ typedef struct
   void *data;
 } Shape_t;
 
-static void executar_comando_circulo(Ground_t *ground);
-static void execute_rectangle_command(Ground_t *ground);
-static void execute_line_command(Ground_t *ground);
-static void execute_text_command(Ground_t *ground);
-static void execute_text_style_command(Ground_t *ground);
-static void create_svg_queue(Ground_t *ground, const char *output_path, FileData fileData, const char *command_suffix);
+// Declarações privadas
+static void executar_comando_circulo(Ground_t *g);
+static void execute_rectangle_command(Ground_t *g);
+static void execute_line_command(Ground_t *g);
+static void execute_text_command(Ground_t *g);
+static void execute_text_style_command(Ground_t *g);
+static void create_svg_queue(Ground_t *g, const char *path, FileData fd, const char *suf);
 
-Ground execute_geo_commands(FileData fileData, const char *output_path, const char *command_suffix)
+// --- IMPLEMENTAÇÃO DA MATEMÁTICA (CÁLCULOS REAIS) ---
+
+double geo_obter_area(void *shape_ptr)
 {
-  Ground_t *ground = malloc(sizeof(Ground_t));
-  if (!ground)
-    exit(1);
-  ground->shapesQueue = queue_create();
-  ground->shapesStackToFree = stack_create();
-  ground->svgQueue = queue_create();
+  Shape_t *shape = (Shape_t *)shape_ptr;
+  if (!shape)
+    return 0.0;
 
-  Queue lines = getLinesQueue(fileData);
-  if (!lines)
+  if (shape->type == CIRCLE)
   {
-    free(ground);
-    return NULL;
+    Circulo c = (Circulo)shape->data;
+    double r = circulo_get_raio(c);
+    return 3.14159265359 * r * r;
   }
-
-  while (!queue_is_empty(lines))
+  else if (shape->type == RECTANGLE)
   {
-    char *line = (char *)queue_dequeue(lines);
-    char *command = strtok(line, " ");
-    if (!command)
-      continue;
-
-    if (strcmp(command, "c") == 0)
-      executar_comando_circulo(ground);
-    else if (strcmp(command, "r") == 0)
-      execute_rectangle_command(ground);
-    else if (strcmp(command, "l") == 0)
-      execute_line_command(ground);
-    else if (strcmp(command, "t") == 0)
-      execute_text_command(ground);
-    else if (strcmp(command, "ts") == 0)
-      execute_text_style_command(ground);
+    Rectangle r = (Retangulo)shape->data;
+    return retangulo_get_largura(r) * retangulo_get_altura(r);
   }
-  create_svg_queue(ground, output_path, fileData, command_suffix);
-  return ground;
+  // Linha e Texto têm área 0 para fins de pontuação neste contexto
+  return 0.0;
 }
 
-void destroy_geo_waste(Ground ground)
+// Auxiliares de Colisão
+static double max(double a, double b) { return a > b ? a : b; }
+static double min(double a, double b) { return a < b ? a : b; }
+
+static int rect_rect_overlap(double x1, double y1, double w1, double h1,
+                             double x2, double y2, double w2, double h2)
 {
-  if (!ground)
-    return;
-  Ground_t *gt = (Ground_t *)ground;
-  queue_destroy(gt->shapesQueue);
-  queue_destroy(gt->svgQueue);
-  while (!stack_is_empty(gt->shapesStackToFree))
-    free(stack_pop(gt->shapesStackToFree));
-  stack_destroy(gt->shapesStackToFree);
-  free(ground);
+  return (x1 < x2 + w2 && x1 + w1 > x2 &&
+          y1 < y2 + h2 && y1 + h1 > y2);
 }
 
-Queue get_ground_queue(Ground ground) { return ground ? ((Ground_t *)ground)->shapesQueue : NULL; }
-Stack get_ground_shapes_stack_to_free(Ground ground) { return ground ? ((Ground_t *)ground)->shapesStackToFree : NULL; }
+static int circ_circ_overlap(double x1, double y1, double r1,
+                             double x2, double y2, double r2)
+{
+  double distSq = pow(x1 - x2, 2) + pow(y1 - y2, 2);
+  double radSum = r1 + r2;
+  return distSq <= (radSum * radSum);
+}
 
-// --- IMPLEMENTAÇÃO DAS NOVAS FUNÇÕES ---
+static int circ_rect_overlap(double cx, double cy, double r,
+                             double rx, double ry, double rw, double rh)
+{
+  double closestX = max(rx, min(cx, rx + rw));
+  double closestY = max(ry, min(cy, ry + rh));
+  double distanceX = cx - closestX;
+  double distanceY = cy - closestY;
+  return ((distanceX * distanceX) + (distanceY * distanceY)) <= (r * r);
+}
+
+int geo_verificar_sobreposicao(void *shapeA_ptr, void *shapeB_ptr)
+{
+  Shape_t *A = (Shape_t *)shapeA_ptr;
+  Shape_t *B = (Shape_t *)shapeB_ptr;
+  if (!A || !B)
+    return 0;
+
+  // Se ambos forem círculos
+  if (A->type == CIRCLE && B->type == CIRCLE)
+  {
+    Circulo c1 = (Circulo)A->data;
+    Circulo c2 = (Circulo)B->data;
+    return circ_circ_overlap(circulo_get_x(c1), circulo_get_y(c1), circulo_get_raio(c1),
+                             circulo_get_x(c2), circulo_get_y(c2), circulo_get_raio(c2));
+  }
+  // Se ambos forem retângulos
+  else if (A->type == RECTANGLE && B->type == RECTANGLE)
+  {
+    Rectangle r1 = (Retangulo)A->data;
+    Rectangle r2 = (Retangulo)B->data;
+    return rect_rect_overlap(retangulo_get_x(r1), retangulo_get_y(r1), retangulo_get_largura(r1), retangulo_get_altura(r1),
+                             retangulo_get_x(r2), retangulo_get_y(r2), retangulo_get_largura(r2), retangulo_get_altura(r2));
+  }
+  // Misto: Círculo e Retângulo
+  else if ((A->type == CIRCLE && B->type == RECTANGLE) || (A->type == RECTANGLE && B->type == CIRCLE))
+  {
+    Circulo c = (A->type == CIRCLE) ? (Circulo)A->data : (Circulo)B->data;
+    Rectangle r = (A->type == RECTANGLE) ? (Retangulo)A->data : (Retangulo)B->data;
+    return circ_rect_overlap(circulo_get_x(c), circulo_get_y(c), circulo_get_raio(c),
+                             retangulo_get_x(r), retangulo_get_y(r), retangulo_get_largura(r), retangulo_get_altura(r));
+  }
+  // Outros tipos (Linha/Texto) simplificados como não colidindo neste exemplo
+  return 0;
+}
+
+// --- CLONAGEM E DESENHO ---
 
 void geo_escrever_svg_forma(void *shape_ptr, FILE *file)
 {
@@ -169,7 +204,61 @@ void *geo_clonar_forma(void *shape_ptr, double x, double y, Ground ground)
   return NULL;
 }
 
-// Funções de parsing (Simplificadas para poupar espaço)
+// Funções existentes mantidas (parsing e setup)
+Ground execute_geo_commands(FileData fileData, const char *output_path, const char *command_suffix)
+{
+  Ground_t *ground = malloc(sizeof(Ground_t));
+  if (!ground)
+    exit(1);
+  ground->shapesQueue = queue_create();
+  ground->shapesStackToFree = stack_create();
+  ground->svgQueue = queue_create();
+
+  Queue lines = getLinesQueue(fileData);
+  if (!lines)
+  {
+    free(ground);
+    return NULL;
+  }
+
+  while (!queue_is_empty(lines))
+  {
+    char *line = (char *)queue_dequeue(lines);
+    char *command = strtok(line, " ");
+    if (!command)
+      continue;
+
+    if (strcmp(command, "c") == 0)
+      executar_comando_circulo(ground);
+    else if (strcmp(command, "r") == 0)
+      execute_rectangle_command(ground);
+    else if (strcmp(command, "l") == 0)
+      execute_line_command(ground);
+    else if (strcmp(command, "t") == 0)
+      execute_text_command(ground);
+    else if (strcmp(command, "ts") == 0)
+      execute_text_style_command(ground);
+  }
+  create_svg_queue(ground, output_path, fileData, command_suffix);
+  return ground;
+}
+
+void destroy_geo_waste(Ground ground)
+{
+  if (!ground)
+    return;
+  Ground_t *gt = (Ground_t *)ground;
+  queue_destroy(gt->shapesQueue);
+  queue_destroy(gt->svgQueue);
+  while (!stack_is_empty(gt->shapesStackToFree))
+    free(stack_pop(gt->shapesStackToFree));
+  stack_destroy(gt->shapesStackToFree);
+  free(ground);
+}
+
+Queue get_ground_queue(Ground ground) { return ground ? ((Ground_t *)ground)->shapesQueue : NULL; }
+Stack get_ground_shapes_stack_to_free(Ground ground) { return ground ? ((Ground_t *)ground)->shapesStackToFree : NULL; }
+
 static void executar_comando_circulo(Ground_t *g)
 {
   char *id = strtok(NULL, " "), *x = strtok(NULL, " "), *y = strtok(NULL, " "), *r = strtok(NULL, " "), *cb = strtok(NULL, " "), *cp = strtok(NULL, " ");

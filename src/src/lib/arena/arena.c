@@ -6,7 +6,7 @@
 #include "../utils/utils.h"
 #include "../geo_handler/geo_handler.h"
 
-// Estrutura para os itens lógicos (usados para o cálculo de física/colisão)
+// Estrutura para itens lógicos
 typedef struct
 {
     void *forma;
@@ -15,7 +15,7 @@ typedef struct
     int anotar;
 } ItemArena;
 
-// NOVA ESTRUTURA: Apenas para guardar os dados do desenho (persiste após o calc)
+// Estrutura para anotações visuais
 typedef struct
 {
     double x, y;
@@ -24,14 +24,9 @@ typedef struct
 
 struct Arena_t
 {
-    Stack itens;     // Pilha processada e esvaziada pelo calc
-    Stack anotacoes; // Pilha persistente para o SVG final
+    Stack itens;
+    Stack anotacoes;
 };
-
-// Funções auxiliares simples para cálculo de área e colisão (Stubs funcionais)
-// Nota: Em uma implementação completa, estas chamariam funções do geo_handler ou formas
-double get_area_stub(void *forma) { return 100.0; }
-int check_overlap_stub(ItemArena *a, ItemArena *b) { return 0; }
 
 Arena arena_criar()
 {
@@ -50,12 +45,10 @@ void arena_destruir(Arena a)
         return;
     struct Arena_t *ar = (struct Arena_t *)a;
 
-    // Limpa itens lógicos
     while (!stack_is_empty(ar->itens))
         free(stack_pop(ar->itens));
     stack_destroy(ar->itens);
 
-    // Limpa anotações visuais
     while (!stack_is_empty(ar->anotacoes))
         free(stack_pop(ar->anotacoes));
     stack_destroy(ar->anotacoes);
@@ -67,7 +60,7 @@ void arena_receber_disparo(Arena a, void *forma, double x, double y, double shoo
 {
     struct Arena_t *ar = (struct Arena_t *)a;
 
-    // 1. Cria o item lógico para o jogo (será consumido no calc)
+    // Item lógico
     ItemArena *it = malloc(sizeof(ItemArena));
     it->forma = forma;
     it->x = x;
@@ -77,7 +70,7 @@ void arena_receber_disparo(Arena a, void *forma, double x, double y, double shoo
     it->anotar = anotar;
     stack_push(ar->itens, it);
 
-    // 2. Se for para anotar, guarda uma cópia na pilha de visualização (NÃO será consumida no calc)
+    // Anotação visual (sobrevive ao calc)
     if (anotar)
     {
         AnotacaoVisual *av = malloc(sizeof(AnotacaoVisual));
@@ -95,7 +88,6 @@ void arena_processar_calc(Arena a, Ground ground, Relatorio r)
         return;
     struct Arena_t *ar = (struct Arena_t *)a;
 
-    // Inverter pilha para processar na ordem correta (FIFO)
     Stack temp = stack_create();
     while (!stack_is_empty(ar->itens))
         stack_push(temp, stack_pop(ar->itens));
@@ -104,30 +96,34 @@ void arena_processar_calc(Arena a, Ground ground, Relatorio r)
     {
         ItemArena *I = stack_pop(temp);
 
-        // Se I for o último elemento (sem par para colidir)
+        // Se I for o último (ímpar), não colide e vai para o chão
         if (stack_is_empty(temp))
         {
-            // Clona I na posição final e devolve ao Ground para ser desenhado
             void *newI = geo_clonar_forma(I->forma, I->x, I->y, ground);
             if (newI)
                 queue_enqueue(get_ground_queue(ground), newI);
-
             free(I);
             continue;
         }
 
         ItemArena *J = stack_pop(temp);
 
-        // Aqui entraria a lógica real de colisão. Usando stub para compilar.
-        if (check_overlap_stub(I, J))
+        // Clones temporários para calcular colisão
+        void *tempShapeI = geo_clonar_forma(I->forma, I->x, I->y, NULL);
+        void *tempShapeJ = geo_clonar_forma(J->forma, J->x, J->y, NULL);
+
+        // USA AS FUNÇÕES REAIS, NÃO OS STUBS
+        if (geo_verificar_sobreposicao(tempShapeI, tempShapeJ))
         {
-            double areaI = get_area_stub(I->forma);
-            double areaJ = get_area_stub(J->forma);
+            double areaI = geo_obter_area(tempShapeI);
+            double areaJ = geo_obter_area(tempShapeJ);
 
             if (areaI < areaJ)
             {
+                // I esmagado
                 relatorio_incrementar_esmagados(r);
                 relatorio_somar_pontuacao(r, areaI);
+
                 // J sobrevive
                 void *newJ = geo_clonar_forma(J->forma, J->x, J->y, ground);
                 if (newJ)
@@ -135,8 +131,9 @@ void arena_processar_calc(Arena a, Ground ground, Relatorio r)
             }
             else
             {
+                // Clonagem
                 relatorio_incrementar_clones(r);
-                // Ambos sobrevivem
+
                 void *newI = geo_clonar_forma(I->forma, I->x, I->y, ground);
                 void *newJ = geo_clonar_forma(J->forma, J->x, J->y, ground);
                 if (newI)
@@ -147,7 +144,7 @@ void arena_processar_calc(Arena a, Ground ground, Relatorio r)
         }
         else
         {
-            // Sem colisão: ambos voltam ao chão
+            // Sem colisão
             void *newI = geo_clonar_forma(I->forma, I->x, I->y, ground);
             void *newJ = geo_clonar_forma(J->forma, J->x, J->y, ground);
             if (newI)
@@ -155,12 +152,13 @@ void arena_processar_calc(Arena a, Ground ground, Relatorio r)
             if (newJ)
                 queue_enqueue(get_ground_queue(ground), newJ);
         }
+
+        free(tempShapeI);
+        free(tempShapeJ);
         free(I);
         free(J);
     }
     stack_destroy(temp);
-
-    // NOTA IMPORTANTE: A pilha ar->anotacoes NÃO foi tocada aqui, logo o desenho das linhas vermelhas sobreviverá!
 }
 
 void arena_desenhar_svg_anotacoes(Arena a, FILE *svg)
@@ -171,25 +169,16 @@ void arena_desenhar_svg_anotacoes(Arena a, FILE *svg)
 
     Stack temp = stack_create();
 
-    // AGORA ITERAMOS SOBRE A PILHA 'anotacoes', que contem o histórico visual
     while (!stack_is_empty(ar->anotacoes))
     {
         AnotacaoVisual *av = stack_pop(ar->anotacoes);
         stack_push(temp, av);
 
-        // Desenha a linha tracejada e o ponto final
         fprintf(svg, "<line x1='%.2f' y1='%.2f' x2='%.2f' y2='%.2f' stroke='red' stroke-width='1' stroke-dasharray='5,5' />\n",
                 av->origX, av->origY, av->x, av->y);
         fprintf(svg, "<circle cx='%.2f' cy='%.2f' r='3' fill='none' stroke='red' />\n", av->x, av->y);
-
-        // Guias opcionais (roxas) para dimensões
-        fprintf(svg, "<line x1='%.2f' y1='%.2f' x2='%.2f' y2='%.2f' stroke='purple' stroke-dasharray='2,2' stroke-width='0.5'/>\n",
-                av->origX, av->origY, av->x, av->origY); // Horizontal
-        fprintf(svg, "<line x1='%.2f' y1='%.2f' x2='%.2f' y2='%.2f' stroke='purple' stroke-dasharray='2,2' stroke-width='0.5'/>\n",
-                av->x, av->origY, av->x, av->y); // Vertical
     }
 
-    // Restaura a pilha (caso fosse necessário usar novamente)
     while (!stack_is_empty(temp))
         stack_push(ar->anotacoes, stack_pop(temp));
     stack_destroy(temp);
