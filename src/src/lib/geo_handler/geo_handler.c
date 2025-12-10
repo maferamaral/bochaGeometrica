@@ -12,6 +12,7 @@
 #include "../formas/retangulo/retangulo.h"
 #include "../formas/text_style/text_style.h"
 #include "../formas/texto/texto.h"
+#include "../utils/utils.h"
 
 typedef struct
 {
@@ -34,7 +35,9 @@ static void execute_text_command(Ground_t *g);
 static void execute_text_style_command(Ground_t *g);
 static void create_svg_queue(Ground_t *g, const char *path, FileData fd, const char *suf);
 
-// --- IMPLEMENTAÇÃO DA MATEMÁTICA (CÁLCULOS REAIS) ---
+// ==========================================
+// IMPLEMENTAÇÃO DOS CÁLCULOS REAIS
+// ==========================================
 
 double geo_obter_area(void *shape_ptr)
 {
@@ -53,7 +56,18 @@ double geo_obter_area(void *shape_ptr)
     Rectangle r = (Retangulo)shape->data;
     return retangulo_get_largura(r) * retangulo_get_altura(r);
   }
-  // Linha e Texto têm área 0 para fins de pontuação neste contexto
+  // Texto: Área aproximada (segundo especificação comum: 20 * len)
+  else if (shape->type == TEXT)
+  {
+    Text t = (Text)shape->data;
+    return 20.0 * text_get_length(t);
+  }
+  // Linha: Comprimento * 2 (espessura)
+  else if (shape->type == LINE)
+  {
+    Line l = (Line)shape->data;
+    return 2.0 * distancia(line_get_x1(l), line_get_y1(l), line_get_x2(l), line_get_y2(l));
+  }
   return 0.0;
 }
 
@@ -93,7 +107,7 @@ int geo_verificar_sobreposicao(void *shapeA_ptr, void *shapeB_ptr)
   if (!A || !B)
     return 0;
 
-  // Se ambos forem círculos
+  // Círculo vs Círculo
   if (A->type == CIRCLE && B->type == CIRCLE)
   {
     Circulo c1 = (Circulo)A->data;
@@ -101,7 +115,7 @@ int geo_verificar_sobreposicao(void *shapeA_ptr, void *shapeB_ptr)
     return circ_circ_overlap(circulo_get_x(c1), circulo_get_y(c1), circulo_get_raio(c1),
                              circulo_get_x(c2), circulo_get_y(c2), circulo_get_raio(c2));
   }
-  // Se ambos forem retângulos
+  // Retângulo vs Retângulo
   else if (A->type == RECTANGLE && B->type == RECTANGLE)
   {
     Rectangle r1 = (Retangulo)A->data;
@@ -109,7 +123,7 @@ int geo_verificar_sobreposicao(void *shapeA_ptr, void *shapeB_ptr)
     return rect_rect_overlap(retangulo_get_x(r1), retangulo_get_y(r1), retangulo_get_largura(r1), retangulo_get_altura(r1),
                              retangulo_get_x(r2), retangulo_get_y(r2), retangulo_get_largura(r2), retangulo_get_altura(r2));
   }
-  // Misto: Círculo e Retângulo
+  // Misto: Círculo vs Retângulo
   else if ((A->type == CIRCLE && B->type == RECTANGLE) || (A->type == RECTANGLE && B->type == CIRCLE))
   {
     Circulo c = (A->type == CIRCLE) ? (Circulo)A->data : (Circulo)B->data;
@@ -117,11 +131,14 @@ int geo_verificar_sobreposicao(void *shapeA_ptr, void *shapeB_ptr)
     return circ_rect_overlap(circulo_get_x(c), circulo_get_y(c), circulo_get_raio(c),
                              retangulo_get_x(r), retangulo_get_y(r), retangulo_get_largura(r), retangulo_get_altura(r));
   }
-  // Outros tipos (Linha/Texto) simplificados como não colidindo neste exemplo
+  // Simplificação: Assumimos que outros tipos (Line/Text) não colidem ou colidem apenas por AABB
+  // Se precisar de colisão para Texto/Linha, converta-os para AABB (Retângulo) e chame rect_rect_overlap.
   return 0;
 }
 
-// --- CLONAGEM E DESENHO ---
+// ==========================================
+// FUNÇÕES DE DESENHO E CLONAGEM (JÁ EXISTENTES)
+// ==========================================
 
 void geo_escrever_svg_forma(void *shape_ptr, FILE *file)
 {
@@ -204,7 +221,10 @@ void *geo_clonar_forma(void *shape_ptr, double x, double y, Ground ground)
   return NULL;
 }
 
-// Funções existentes mantidas (parsing e setup)
+// ==========================================
+// FUNÇÕES DE PARSING E SETUP
+// ==========================================
+
 Ground execute_geo_commands(FileData fileData, const char *output_path, const char *command_suffix)
 {
   Ground_t *ground = malloc(sizeof(Ground_t));

@@ -6,7 +6,6 @@
 #include "../utils/utils.h"
 #include "../geo_handler/geo_handler.h"
 
-// Estrutura para itens lógicos
 typedef struct
 {
     void *forma;
@@ -15,7 +14,6 @@ typedef struct
     int anotar;
 } ItemArena;
 
-// Estrutura para anotações visuais
 typedef struct
 {
     double x, y;
@@ -44,23 +42,18 @@ void arena_destruir(Arena a)
     if (!a)
         return;
     struct Arena_t *ar = (struct Arena_t *)a;
-
     while (!stack_is_empty(ar->itens))
         free(stack_pop(ar->itens));
     stack_destroy(ar->itens);
-
     while (!stack_is_empty(ar->anotacoes))
         free(stack_pop(ar->anotacoes));
     stack_destroy(ar->anotacoes);
-
     free(ar);
 }
 
 void arena_receber_disparo(Arena a, void *forma, double x, double y, double shooterX, double shooterY, int anotar)
 {
     struct Arena_t *ar = (struct Arena_t *)a;
-
-    // Item lógico
     ItemArena *it = malloc(sizeof(ItemArena));
     it->forma = forma;
     it->x = x;
@@ -69,8 +62,6 @@ void arena_receber_disparo(Arena a, void *forma, double x, double y, double shoo
     it->origY = shooterY;
     it->anotar = anotar;
     stack_push(ar->itens, it);
-
-    // Anotação visual (sobrevive ao calc)
     if (anotar)
     {
         AnotacaoVisual *av = malloc(sizeof(AnotacaoVisual));
@@ -87,7 +78,6 @@ void arena_processar_calc(Arena a, Ground ground, Relatorio r)
     if (!a)
         return;
     struct Arena_t *ar = (struct Arena_t *)a;
-
     Stack temp = stack_create();
     while (!stack_is_empty(ar->itens))
         stack_push(temp, stack_pop(ar->itens));
@@ -95,8 +85,6 @@ void arena_processar_calc(Arena a, Ground ground, Relatorio r)
     while (!stack_is_empty(temp))
     {
         ItemArena *I = stack_pop(temp);
-
-        // Se I for o último (ímpar), não colide e vai para o chão
         if (stack_is_empty(temp))
         {
             void *newI = geo_clonar_forma(I->forma, I->x, I->y, ground);
@@ -105,35 +93,29 @@ void arena_processar_calc(Arena a, Ground ground, Relatorio r)
             free(I);
             continue;
         }
-
         ItemArena *J = stack_pop(temp);
 
-        // Clones temporários para calcular colisão
+        // Clona temporariamente para verificar colisão com as coordenadas corretas
         void *tempShapeI = geo_clonar_forma(I->forma, I->x, I->y, NULL);
         void *tempShapeJ = geo_clonar_forma(J->forma, J->x, J->y, NULL);
 
-        // USA AS FUNÇÕES REAIS, NÃO OS STUBS
+        // USANDO AS FUNÇÕES REAIS AGORA
         if (geo_verificar_sobreposicao(tempShapeI, tempShapeJ))
         {
             double areaI = geo_obter_area(tempShapeI);
             double areaJ = geo_obter_area(tempShapeJ);
 
             if (areaI < areaJ)
-            {
-                // I esmagado
+            { // Esmagamento
                 relatorio_incrementar_esmagados(r);
                 relatorio_somar_pontuacao(r, areaI);
-
-                // J sobrevive
                 void *newJ = geo_clonar_forma(J->forma, J->x, J->y, ground);
                 if (newJ)
                     queue_enqueue(get_ground_queue(ground), newJ);
             }
             else
-            {
-                // Clonagem
+            { // Clonagem
                 relatorio_incrementar_clones(r);
-
                 void *newI = geo_clonar_forma(I->forma, I->x, I->y, ground);
                 void *newJ = geo_clonar_forma(J->forma, J->x, J->y, ground);
                 if (newI)
@@ -143,8 +125,7 @@ void arena_processar_calc(Arena a, Ground ground, Relatorio r)
             }
         }
         else
-        {
-            // Sem colisão
+        { // Sem colisão
             void *newI = geo_clonar_forma(I->forma, I->x, I->y, ground);
             void *newJ = geo_clonar_forma(J->forma, J->x, J->y, ground);
             if (newI)
@@ -152,7 +133,6 @@ void arena_processar_calc(Arena a, Ground ground, Relatorio r)
             if (newJ)
                 queue_enqueue(get_ground_queue(ground), newJ);
         }
-
         free(tempShapeI);
         free(tempShapeJ);
         free(I);
@@ -166,19 +146,15 @@ void arena_desenhar_svg_anotacoes(Arena a, FILE *svg)
     if (!a || !svg)
         return;
     struct Arena_t *ar = (struct Arena_t *)a;
-
     Stack temp = stack_create();
-
     while (!stack_is_empty(ar->anotacoes))
     {
         AnotacaoVisual *av = stack_pop(ar->anotacoes);
         stack_push(temp, av);
-
         fprintf(svg, "<line x1='%.2f' y1='%.2f' x2='%.2f' y2='%.2f' stroke='red' stroke-width='1' stroke-dasharray='5,5' />\n",
                 av->origX, av->origY, av->x, av->y);
         fprintf(svg, "<circle cx='%.2f' cy='%.2f' r='3' fill='none' stroke='red' />\n", av->x, av->y);
     }
-
     while (!stack_is_empty(temp))
         stack_push(ar->anotacoes, stack_pop(temp));
     stack_destroy(temp);

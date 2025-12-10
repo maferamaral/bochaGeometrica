@@ -22,7 +22,7 @@ Stack get_ground_shapes_stack_to_free(Ground ground);
 void geo_escrever_svg_forma(void *shape, FILE *svg);
 void *geo_clonar_forma(void *shape, double x, double y, Ground ground);
 
-// --- NOVAS FUNÇÕES PARA CÁLCULOS (IMPORTANTE) ---
+// --- FUNÇÕES DE CÁLCULO (NECESSÁRIAS PARA O TXT) ---
 double geo_obter_area(void *shape);
 int geo_verificar_sobreposicao(void *shapeA, void *shapeB);
 
